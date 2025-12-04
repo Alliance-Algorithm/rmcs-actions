@@ -1,0 +1,14 @@
+{
+    "[svelte]": {
+        "editor.defaultFormatter": "svelte.svelte-vscode"
+    },
+    "[tailwindcss]": {
+        "editor.defaultFormatter": "prettier.prettier-vscode"
+    },
+    "[json]": {
+        "editor.defaultFormatter": "prettier.prettier-vscode"
+    },
+    "files.associations": {
+        "*.css": "tailwindcss"
+    }
+}
