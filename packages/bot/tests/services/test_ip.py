@@ -1,5 +1,7 @@
-import pytest
+from __future__ import annotations
+
 from devtools import debug
+
 
 def test_ip():
     from services.ip import fetch_ip_details

@@ -1,4 +1,7 @@
 **/__pycache__
 .venv
 .python-version
-
+/logs
+.env
+/.ruff_cache
+/.pytest_cache

@@ -19,3 +19,8 @@ you must grant host network permissions to the container.
 - If use `docker run`: add the flag `--net=host`.
 - If use `docker-compose`: add the line `network_mode: "host"` to the service definition.
 
+## Configurations
+
+The [`client.config.yaml`](./client.config.yaml) stores some configuration for the 
+client. You must provide the path by either sticking to the current directory structure
+or providing a env-var `CONFIG_PATH` pointing to the file.
