@@ -10,7 +10,7 @@ def init_logger(path: Path):
     _logger.setLevel(logging.DEBUG)
     _console_handler = logging.StreamHandler()
     _console_handler.setLevel(logging.INFO)
-    _formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    _formatter = logging.Formatter("[%(asctime)s|%(name)s] [%(levelname)s] %(message)s")
     _console_handler.setFormatter(_formatter)
     _logger.addHandler(_console_handler)
     path.mkdir(parents=True, exist_ok=True)

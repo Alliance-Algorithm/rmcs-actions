@@ -3,3 +3,10 @@ logging:
     directory: ./logs/daemon
   server:
     directory: ./logs/server
+
+storage:
+  directory: ./runtime
+
+server:
+  http: http://localhost:3000
+  websocket: ws://localhost:3000
