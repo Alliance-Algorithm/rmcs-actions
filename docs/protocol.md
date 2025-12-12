@@ -28,7 +28,9 @@ This is done by:
     send a request to `/ident/whoami` providing necessary
     identification messages including MAC address.
     The server will grant the robot a unique __robot id__
-    and the robot _shall_ store it properly.
+    and the robot _shall_ store it properly.  
+    For more information, see the server's documentation
+    or visit [here](#whoami) to get a quick review.
 
 The bot's daemon will then try to connect to the `/ws/:robot-id` endpoint
 after startup (which is triggered either manually or by the container.)
@@ -64,6 +66,18 @@ The message pack shares this format:
 }
 ```
 
+### Closing a Communication
+
+A communication is closed if either of the side sends a close message with payload of:
+```jsonc
+{
+    "type": "close"
+}
+```
+
+Either part will drop the session controller once send the message,
+and the other part _shall_ close it and drop the session controller then.
+
 ### Server Instructions
 
 This section defines instructions sent by the server.
@@ -72,15 +86,17 @@ All instructions share this payload format:
 ```json
 {
     "type": "instruction",
-    "instruction": "<instruction endpoint>",
-    "message": <message payload>
+    "content": {
+        "instruction": "<instruction endpoint>",
+        "message": <message payload>
+    }
 }
 ```
 And their responses share this response format:
 ```json
 {
     "type": "response",
-    "message": <response payload>
+    "content": <response payload>
 }
 ```
 
@@ -156,8 +172,10 @@ All events share the following format:
 ```json
 {
     "type": "event",
-    "event": "<event type>",
-    "detail": <event detail object>
+    "content": {
+        "event": "<event type>",
+        "detail": <event detail object>
+    }
 }
 ```
 
@@ -175,4 +193,26 @@ All events share the following format:
 **Response**:
 ```json
 { }
+```
+
+## Appendix
+
+### Whoami
+
+**WARNING:** THIS SECTION MIGHT BE OUTDATED.
+
+**Method**: `POST`
+**Endpoint**: `/ident/whoami`
+**Request**:
+```jsonc
+{
+    "username": "<current login username>",
+    "mac": "<MAC address>",
+}
+```
+**Response**:
+```jsonc
+{
+    "robot_id": "<robot id>"
+}
 ```
