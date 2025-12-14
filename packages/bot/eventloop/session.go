@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/lib"
 	"github.com/bytedance/sonic"
 	"github.com/google/uuid"
 )
@@ -11,6 +12,15 @@ import (
 type SessionHub struct {
 	sessions map[uuid.UUID]*Session
 	lock     sync.RWMutex
+	ctx      context.Context
+}
+
+func NewSessionHub(ctx context.Context) *SessionHub {
+	return &SessionHub{
+		sessions: make(map[uuid.UUID]*Session),
+		lock:     sync.RWMutex{},
+		ctx:      ctx,
+	}
 }
 
 type Session struct {
@@ -23,34 +33,32 @@ type Session struct {
 	// the websocket connection.
 	// And this channel is used to send messages
 	// to the internal goroutine.
-	writeCh chan sonic.NoCopyRawMessage
+	readCh chan sonic.NoCopyRawMessage
 }
 
-type SessionAction = func(ctx context.Context)
-
-type RobotIdCtxKey struct{}
-type SessionIdCtxKey struct{}
-type WsWriterCtxKey struct{}
-type WsReaderCtxKey struct{}
-
-func (s *SessionHub) NewSession(ctx context.Context, action *SessionAction) *Session {
+func (s *SessionHub) NewSession(action lib.SessionAction) *Session {
 	sessionId := uuid.New()
-	ctx = context.WithValue(ctx, SessionIdCtxKey{}, sessionId)
+	ctx := context.WithValue(s.ctx, lib.SessionIdCtxKey{}, sessionId)
 
-	return s.NewSessionWithId(ctx, action)
+	return s.newSessionWithId(ctx, action)
 }
 
-func (s *SessionHub) NewSessionWithId(ctx context.Context, action *SessionAction) *Session {
+func (s *SessionHub) newSessionWithId(ctx context.Context, action lib.SessionAction) *Session {
 	internalCh := make(chan sonic.NoCopyRawMessage)
-	robotId := ctx.Value(RobotIdCtxKey{}).(string)
-	sessionId := ctx.Value(SessionIdCtxKey{}).(uuid.UUID)
+	// Safely extract RobotId from context; default to empty string if missing
+	var robotId string
+	if v := ctx.Value(lib.RobotIdCtxKey{}); v != nil {
+		if rid, ok := v.(string); ok {
+			robotId = rid
+		}
+	}
+	sessionId := ctx.Value(lib.SessionIdCtxKey{}).(uuid.UUID)
 	ctx, cancelFunc := context.WithCancel(ctx)
-
 	session := &Session{
 		RobotId:    robotId,
 		SessionId:  sessionId,
 		CancelFunc: cancelFunc,
-		writeCh:    internalCh,
+		readCh:     internalCh,
 	}
 
 	s.lock.Lock()
@@ -59,8 +67,8 @@ func (s *SessionHub) NewSessionWithId(ctx context.Context, action *SessionAction
 
 	go func() {
 		defer cancelFunc()
-		actionCtx := context.WithValue(ctx, WsReaderCtxKey{}, session.writeCh)
-		(*action)(actionCtx)
+		actionCtx := context.WithValue(ctx, lib.ResponseReaderCtxKey{}, internalCh)
+		(action)(actionCtx)
 	}()
 
 	return session

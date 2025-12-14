@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, oneshot};
 
+use crate::service::message::Message;
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct HeartbeatDetail {}
 
@@ -8,8 +10,9 @@ pub struct HeartbeatDetail {}
 pub struct HeartbeatResponse {}
 
 pub async fn heartbeat_task(
+    session_id: uuid::Uuid,
     mut receiver: mpsc::Receiver<serde_json::Value>,
-    sender: mpsc::Sender<serde_json::Value>,
+    sender: mpsc::Sender<Message>,
     mut close_listener: oneshot::Receiver<()>,
 ) -> anyhow::Result<()> {
     loop {
@@ -18,8 +21,8 @@ pub async fn heartbeat_task(
                 let _ = serde_json::from_value::<HeartbeatDetail>(detail)?;
                 // Process heartbeat detail if needed
                 let response = HeartbeatResponse {};
-                tokio::time::sleep(std::time::Duration::from_millis(HEARTBEAT_ELAPSE_MS)).await;
-                sender.send(serde_json::to_value(response)?).await?;
+                sender.send(Message::new_response_with_uuid(session_id, response)?).await?;
+                log::debug!("Heartbeat response sent.");
             }
             _ = &mut close_listener => {
                 log::info!("Heartbeat task received close signal.");
@@ -29,5 +32,3 @@ pub async fn heartbeat_task(
     }
     Ok(())
 }
-
-const HEARTBEAT_ELAPSE_MS: u64 = 5000;

@@ -7,9 +7,38 @@ use uuid::Uuid;
 pub struct Message {
     #[serde_as(as = "serde_with::DisplayFromStr")]
     pub session_id: Uuid,
-    #[serde(with = "chrono::serde::ts_seconds")]
+    #[serde(with = "chrono::serde::ts_milliseconds")]
     pub local_timestamp: chrono::DateTime<chrono::Utc>,
     pub payload: MessagePayload,
+}
+
+#[allow(dead_code)]
+impl Message {
+    pub fn new_event_with_uuid(
+        session_id: Uuid,
+        payload: impl Serialize,
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            session_id,
+            local_timestamp: chrono::Utc::now(),
+            payload: MessagePayload::Event {
+                content: serde_json::to_value(payload)?,
+            },
+        })
+    }
+
+    pub fn new_response_with_uuid(
+        session_id: Uuid,
+        payload: impl Serialize,
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            session_id,
+            local_timestamp: chrono::Utc::now(),
+            payload: MessagePayload::Response {
+                content: serde_json::to_value(payload)?,
+            },
+        })
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,7 +48,7 @@ pub enum MessagePayload {
         content: InstructionContent,
     },
     Event {
-        detail: serde_json::Value,
+        content: serde_json::Value,
     },
     Response {
         content: serde_json::Value,

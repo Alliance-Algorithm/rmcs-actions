@@ -1,15 +1,13 @@
-package eventloop
+package share
 
 import (
-	"time"
-
 	"github.com/bytedance/sonic"
 	"github.com/google/uuid"
 )
 
 type Message struct {
 	SessionID      uuid.UUID      `json:"session_id"`
-	LocalTimestamp time.Time      `json:"local_timestamp"`
+	LocalTimestamp int64          `json:"local_timestamp"`
 	Payload        MessagePayload `json:"payload"`
 }
 

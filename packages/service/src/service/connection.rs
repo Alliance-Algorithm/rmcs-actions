@@ -1,5 +1,5 @@
 use dashmap::DashMap;
-use tokio::sync::oneshot;
+use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
 
 use crate::service::{
@@ -22,15 +22,16 @@ impl Connection {
         }
     }
 
-    pub async fn recv(&self, msg: &str) -> anyhow::Result<()> {
+    pub async fn recv(&self, msg: &str, ws_sender: mpsc::Sender<Message>) -> anyhow::Result<()> {
         let message: Message = serde_json::from_str(msg)?;
         let session_id = message.session_id;
         let payload = message.payload;
-        self.process_session(session_id, payload).await
+        self.process_session(ws_sender, session_id, payload).await
     }
 
     async fn process_session(
         &self,
+        ws_sender: mpsc::Sender<Message>,
         session_id: Uuid,
         message_payload: MessagePayload,
     ) -> anyhow::Result<()> {
@@ -40,9 +41,10 @@ impl Connection {
                     "Invalid message payload: Instructions shall be sent by the server."
                 );
             }
-            MessagePayload::Event { detail } => {
+            MessagePayload::Event { content } => {
+                log::info!("Processing event for session_id: {}", session_id);
                 let event_session =
-                    events::create_event_session(detail, session_id)?;
+                    events::create_event_session(content, session_id, ws_sender)?;
                 self.sessions.insert(
                     session_id,
                     (event_session.action, event_session.close_listener),
@@ -72,13 +74,6 @@ impl Connection {
             }
             _ => {}
         }
-        // self.sessions.insert(
-        //     session_id,
-        //     action.0.init_action(
-        //         session_id,
-        //         tokio::sync::mpsc::channel::<serde_json::Value>(32).0,
-        //     ),
-        // );
 
         Ok(())
     }

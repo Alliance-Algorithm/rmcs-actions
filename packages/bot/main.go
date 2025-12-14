@@ -43,6 +43,7 @@ func main() {
 	}
 
 	logger.Logger().Info("Robot authenticated successfully", zap.String("robot_id", robotId))
+	ctx = context.WithValue(ctx, lib.RobotIdCtxKey{}, robotId)
 
 	wsUrl := cfg.Service.Websocket + "/" + robotId
 
@@ -61,8 +62,8 @@ func main() {
 	eventLoopCtx, cancelEventLoop := context.WithCancel(ctx)
 	defer cancelEventLoop()
 
-	backend := lib.NewWsEventloop(c)
-	go eventloop.ServeOn(eventLoopCtx, *backend)
+	backend := eventloop.NewWsEventloop(c)
+	eventloop.ServeOn(eventLoopCtx, backend)
 	logger.Logger().Info("Event loop started")
 
 	sigCh := make(chan os.Signal, 1)

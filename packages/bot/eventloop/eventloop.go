@@ -6,24 +6,32 @@ import (
 	"github.com/bytedance/sonic"
 	"go.uber.org/zap"
 
+	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/lib"
 	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/logger"
 )
 
 type EventloopBackend struct {
-	SendJson func(ctx context.Context, v any) error
-	RecvJson func(ctx context.Context, v *sonic.NoCopyRawMessage) error
+	SendJson   func(ctx context.Context, v any) error
+	RecvJson   func(ctx context.Context, v *sonic.NoCopyRawMessage) error
+	SessionHub *SessionHub
 }
 
-func ServeOn(ctx context.Context, backend EventloopBackend) {
-	serveEventloop(ctx, backend)
+func ServeOn(ctx context.Context, backend *EventloopBackend) {
+	go serveEventloop(ctx, backend)
 }
 
-func serveEventloop(ctx context.Context, backend EventloopBackend) {
+func serveEventloop(ctx context.Context, backend *EventloopBackend) {
 	send := make(chan any, 10)
-	recv := make(chan any, 10)
+	recv := make(chan sonic.NoCopyRawMessage, 10)
 
+	ctx = context.WithValue(ctx, lib.WsWriterCtxKey{}, send)
+	ctx = context.WithValue(ctx, lib.WsReaderCtxKey{}, recv)
 	go eventloopSendJson(ctx, backend, send)
 	go eventloopRecvJson(ctx, backend, recv)
+
+	backend.SessionHub = NewSessionHub(ctx)
+
+	go backend.SessionHub.startDispatch()
 
 	// Wait for context cancellation
 	<-ctx.Done()
@@ -31,7 +39,7 @@ func serveEventloop(ctx context.Context, backend EventloopBackend) {
 	logger.Logger().Info("Event loop shutting down")
 }
 
-func eventloopSendJson(ctx context.Context, backend EventloopBackend, send chan any) {
+func eventloopSendJson(ctx context.Context, backend *EventloopBackend, send chan any) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -51,7 +59,7 @@ func eventloopSendJson(ctx context.Context, backend EventloopBackend, send chan 
 	}
 }
 
-func eventloopRecvJson(ctx context.Context, backend EventloopBackend, response chan any) {
+func eventloopRecvJson(ctx context.Context, backend *EventloopBackend, response chan sonic.NoCopyRawMessage) {
 	defer close(response)
 	for {
 		select {
@@ -72,10 +80,6 @@ func eventloopRecvJson(ctx context.Context, backend EventloopBackend, response c
 			}
 			return
 		}
-		select {
-		case <-ctx.Done():
-			return
-		case response <- event:
-		}
+		response <- event
 	}
 }

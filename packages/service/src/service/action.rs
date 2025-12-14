@@ -73,7 +73,7 @@ pub struct OnceShot<F>(pub F);
 #[sealed::sealed]
 impl<F, Input, Output, OutputFut> InitAction<Input, Output> for OnceShot<F>
 where
-    F: FnOnce() -> OutputFut + Send + 'static,
+    F: FnOnce(Uuid) -> OutputFut + Send + 'static,
     OutputFut: Future<Output = anyhow::Result<Output>> + Send + 'static,
     Input: 'static + Send + Sync + DeserializeOwned,
     Output: 'static + Send + Sync + Serialize + DeserializeOwned,
@@ -84,8 +84,9 @@ where
         receiver: mpsc::Sender<Output>,
     ) -> (Action, oneshot::Sender<()>) {
         let (close_sender, close_listener) = oneshot::channel::<()>();
-        let (json_sender, mut json_receiver) = mpsc::channel::<serde_json::Value>(32);
-        
+        let (json_sender, mut json_receiver) =
+            mpsc::channel::<serde_json::Value>(32);
+
         // Spawn output converter task: JSON -> Typed Output
         tokio::spawn(async move {
             while let Some(json_value) = json_receiver.recv().await {
@@ -102,14 +103,14 @@ where
                 }
             }
         });
-        
-        (  
+
+        (
             Action::new(
                 session_id,
                 json_sender,
                 close_listener,
                 move |_inbound_receiver, outbound_sender, _close_listener| {
-                    let fut = self.0();
+                    let fut = self.0(session_id);
                     async move {
                         let result = fut.await?;
                         let json_value = serde_json::to_value(result)?;
@@ -135,7 +136,7 @@ pub struct Responsive<F>(pub F);
 #[sealed::sealed]
 impl<F, Input, Output, OutputFut> InitAction<Input, Output> for Responsive<F>
 where
-    F: Fn(Input) -> OutputFut + Send + 'static,
+    F: Fn(Uuid, Input) -> OutputFut + Send + 'static,
     OutputFut: Future<Output = anyhow::Result<Output>> + Send + 'static,
     Input: 'static + Send + Sync + DeserializeOwned,
     Output: 'static + Send + Sync + Serialize + DeserializeOwned,
@@ -146,8 +147,9 @@ where
         receiver: mpsc::Sender<Output>,
     ) -> (Action, oneshot::Sender<()>) {
         let (close_sender, close_listener) = oneshot::channel::<()>();
-        let (json_sender, mut json_receiver) = mpsc::channel::<serde_json::Value>(32);
-        
+        let (json_sender, mut json_receiver) =
+            mpsc::channel::<serde_json::Value>(32);
+
         // Spawn output converter task: JSON -> Typed Output
         tokio::spawn(async move {
             while let Some(json_value) = json_receiver.recv().await {
@@ -164,7 +166,7 @@ where
                 }
             }
         });
-        
+
         (
             Action::new(
                 session_id,
@@ -175,9 +177,12 @@ where
                       _close_listener| {
                     let f = self.0;
                     async move {
-                        while let Some(json_input) = inbound_receiver.recv().await {
-                            let input: Input = serde_json::from_value(json_input)?;
-                            let result = f(input).await?;
+                        while let Some(json_input) =
+                            inbound_receiver.recv().await
+                        {
+                            let input: Input =
+                                serde_json::from_value(json_input)?;
+                            let result = f(session_id, input).await?;
                             let json_output = serde_json::to_value(result)?;
                             outbound_sender.send(json_output).await?;
                         }
@@ -197,6 +202,7 @@ pub struct Streaming<F>(pub F);
 impl<F, Input, Output, OutputFut> InitAction<Input, Output> for Streaming<F>
 where
     F: Fn(
+            Uuid,
             mpsc::Receiver<Input>,
             mpsc::Sender<Output>,
             oneshot::Receiver<()>,
@@ -214,11 +220,13 @@ where
     ) -> (Action, oneshot::Sender<()>) {
         let (close_sender, close_listener) = oneshot::channel::<()>();
         let (typed_in_sender, typed_in_receiver) = mpsc::channel::<Input>(32);
-        let (typed_out_sender, mut typed_out_receiver) = mpsc::channel::<Output>(32);
-        let (json_out_sender, mut json_out_receiver) = mpsc::channel::<serde_json::Value>(32);
-        
+        let (typed_out_sender, mut typed_out_receiver) =
+            mpsc::channel::<Output>(32);
+        let (json_out_sender, mut json_out_receiver) =
+            mpsc::channel::<serde_json::Value>(32);
+
         let json_out_sender_clone = json_out_sender.clone();
-        
+
         // Spawn output converter task: Typed Output -> JSON + External Typed receiver
         tokio::spawn(async move {
             while let Some(typed_output) = typed_out_receiver.recv().await {
@@ -229,7 +237,8 @@ where
                             break;
                         }
                         // Send JSON for internal Action output
-                        if json_out_sender_clone.send(json_value).await.is_err() {
+                        if json_out_sender_clone.send(json_value).await.is_err()
+                        {
                             break;
                         }
                     }
@@ -240,40 +249,58 @@ where
                 }
             }
         });
-        
+
         (
             Action::new(
                 session_id,
                 json_out_sender,
                 close_listener,
-                move |mut json_in_receiver, json_outbound_sender, user_close_listener| {
+                move |mut json_in_receiver,
+                      json_outbound_sender,
+                      user_close_listener| {
                     // Spawn input converter task: JSON -> Typed Input
                     tokio::spawn(async move {
-                        while let Some(json_value) = json_in_receiver.recv().await {
+                        while let Some(json_value) =
+                            json_in_receiver.recv().await
+                        {
                             match serde_json::from_value::<Input>(json_value) {
                                 Ok(typed_input) => {
-                                    if typed_in_sender.send(typed_input).await.is_err() {
+                                    if typed_in_sender
+                                        .send(typed_input)
+                                        .await
+                                        .is_err()
+                                    {
                                         break;
                                     }
                                 }
                                 Err(e) => {
-                                    log::error!("Failed to deserialize input: {}", e);
+                                    log::error!(
+                                        "Failed to deserialize input: {}",
+                                        e
+                                    );
                                     break;
                                 }
                             }
                         }
                     });
-                    
+
                     // Forward JSON outputs to the outbound sender provided by Action
                     tokio::spawn(async move {
-                        while let Some(json_value) = json_out_receiver.recv().await {
-                            if json_outbound_sender.send(json_value).await.is_err() {
+                        while let Some(json_value) =
+                            json_out_receiver.recv().await
+                        {
+                            if json_outbound_sender
+                                .send(json_value)
+                                .await
+                                .is_err()
+                            {
                                 break;
                             }
                         }
                     });
-                    
+
                     let fut = self.0(
+                        session_id, 
                         typed_in_receiver,
                         typed_out_sender,
                         user_close_listener,

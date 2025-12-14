@@ -1,16 +1,15 @@
-package lib
+package eventloop
 
 import (
 	"context"
 
-	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/eventloop"
 	"github.com/bytedance/sonic"
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 )
 
-func NewWsEventloop(c *websocket.Conn) *eventloop.EventloopBackend {
-	backend := eventloop.EventloopBackend{
+func NewWsEventloop(c *websocket.Conn) *EventloopBackend {
+	backend := EventloopBackend{
 		SendJson: func(ctx context.Context, v any) error {
 			return wsjson.Write(ctx, c, v)
 		},
