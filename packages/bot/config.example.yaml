@@ -1,0 +1,10 @@
+# This file defines the configuration for the bot.
+log:
+  dir: logs
+
+storage:
+  dir: storage
+
+service:
+  api: http://localhost:3000/api
+  websocket: ws://localhost:3000/ws
