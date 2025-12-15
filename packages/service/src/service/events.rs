@@ -29,6 +29,7 @@ pub fn create_event_session(
     event_raw: serde_json::Value,
     session_id: Uuid,
     output_receiver: mpsc::Sender<Message>,
+    on_complete: impl FnOnce() + Send + 'static,
 ) -> anyhow::Result<EventSession> {
     log::info!("Creating event session for session_id: {}", session_id);
     let event_message: EventMessage = serde_json::from_value(event_raw)?;
@@ -36,7 +37,7 @@ pub fn create_event_session(
     // receiver is returned for external consumers to read.
     let (action, closer) = match event_message.event {
         Event::Heartbeat => Streaming(heartbeat::heartbeat_task)
-            .init_action(session_id, output_receiver),
+            .init_action(session_id, output_receiver, on_complete),
         Event::Unknown => {
             anyhow::bail!("Unknown event type");
         }

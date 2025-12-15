@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use uuid::Uuid;
 
+use crate::service::instructions::InstructionContent;
+
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
@@ -39,6 +41,17 @@ impl Message {
             },
         })
     }
+
+    pub fn new_instruction_with_uuid(
+        session_id: Uuid,
+        content: InstructionContent,
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            session_id,
+            local_timestamp: chrono::Utc::now(),
+            payload: MessagePayload::Instruction { content },
+        })
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -54,15 +67,6 @@ pub enum MessagePayload {
         content: serde_json::Value,
     },
     Close,
-    #[serde(untagged)]
-    Unknown(serde_json::Value),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "instruction")]
-pub enum InstructionContent {
-    #[serde(rename = "sync_robot_id")]
-    SyncRobotId {},
     #[serde(untagged)]
     Unknown(serde_json::Value),
 }

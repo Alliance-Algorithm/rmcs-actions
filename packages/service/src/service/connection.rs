@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use dashmap::DashMap;
 use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
@@ -5,33 +7,53 @@ use uuid::Uuid;
 use crate::service::{
     action::Action,
     events,
+    instructions::Instruction,
     message::{Message, MessagePayload},
 };
 
 pub struct Connection {
-    pub sessions: DashMap<Uuid, (Action, oneshot::Sender<()>)>,
-    #[allow(unused)]
+    pub sessions: Arc<DashMap<Uuid, (Action, oneshot::Sender<()>)>>,
     pub robot_id: String,
+    pub writer: mpsc::Sender<Message>,
 }
 
 impl Connection {
-    pub fn new(robot_id: String) -> Self {
+    pub fn new(robot_id: String, writer: mpsc::Sender<Message>) -> Self {
         Connection {
-            sessions: DashMap::new(),
+            sessions: Arc::new(DashMap::new()),
             robot_id,
+            writer,
         }
     }
 
-    pub async fn recv(&self, msg: &str, ws_sender: mpsc::Sender<Message>) -> anyhow::Result<()> {
+    pub async fn recv(&self, msg: &str) -> anyhow::Result<()> {
         let message: Message = serde_json::from_str(msg)?;
         let session_id = message.session_id;
         let payload = message.payload;
-        self.process_session(ws_sender, session_id, payload).await
+        self.process_session(session_id, payload).await
+    }
+
+    pub async fn send_instruction(
+        &self,
+        instruction: Instruction,
+    ) -> anyhow::Result<serde_json::Value> {
+        let (resp_tx, resp_rx) = oneshot::channel();
+        let sessions = self.sessions.clone();
+        let session_id = Uuid::new_v4();
+        let session = instruction.into_session_compatible(session_id, resp_tx)(
+            self.writer.clone(),
+            move || {
+                sessions.remove(&session_id);
+            },
+        );
+        self.sessions
+            .insert(session_id, (session.action, session.close_listener));
+        let response = resp_rx.await?;
+        Ok(response)
     }
 
     async fn process_session(
         &self,
-        ws_sender: mpsc::Sender<Message>,
         session_id: Uuid,
         message_payload: MessagePayload,
     ) -> anyhow::Result<()> {
@@ -43,8 +65,15 @@ impl Connection {
             }
             MessagePayload::Event { content } => {
                 log::info!("Processing event for session_id: {}", session_id);
-                let event_session =
-                    events::create_event_session(content, session_id, ws_sender)?;
+                let sessions = self.sessions.clone();
+                let event_session = events::create_event_session(
+                    content,
+                    session_id,
+                    self.writer.clone(),
+                    move || {
+                        sessions.remove(&session_id);
+                    },
+                )?;
                 self.sessions.insert(
                     session_id,
                     (event_session.action, event_session.close_listener),

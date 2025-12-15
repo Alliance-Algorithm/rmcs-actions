@@ -2,10 +2,12 @@ package eventloop
 
 import (
 	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/eventloop/events"
+	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/eventloop/instructions"
 	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/eventloop/share"
 	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/lib"
 	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/logger"
 	"github.com/bytedance/sonic"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -44,6 +46,11 @@ func (s *SessionHub) dispatchEvent(event share.Message) {
 	sessionId := event.SessionID
 	logger.Logger().Debug("Dispatching event", zap.String("session_id", sessionId.String()))
 
+	if payload.IsInstruction() {
+		s.StartInstructionHandler(sessionId, payload.Content)
+		return
+	}
+
 	s.lock.RLock()
 	session, exists := s.sessions[sessionId]
 	s.lock.RUnlock()
@@ -56,10 +63,7 @@ func (s *SessionHub) dispatchEvent(event share.Message) {
 	if payload.IsClose() {
 		logger.Logger().Info("Session closed by remote", zap.String("session_id", sessionId.String()))
 		close(session.readCh)
-		session.CancelFunc()
 		s.DeleteSession(sessionId)
-	} else if payload.IsInstruction() {
-		// Not implemented yet
 	} else if payload.IsResponse() {
 		session.readCh <- payload.Content
 	} else if payload.IsEvent() {
@@ -71,4 +75,22 @@ func (s *SessionHub) startEmitters() {
 	for _, emitter := range events.AutoStart {
 		s.NewSession(emitter.Action)
 	}
+}
+
+func (s *SessionHub) StartInstructionHandler(sessionId uuid.UUID, content sonic.NoCopyRawMessage) {
+	var instr instructions.InstructionMessage
+	err := sonic.Unmarshal(content, &instr)
+	if err != nil {
+		logger.Logger().Error("Failed to unmarshal instruction message", zap.Error(err))
+		return
+	}
+
+	handler, exists := instructions.InstructionHandlers[instr.Instruction]
+	if !exists {
+		logger.Logger().Warn("No handler found for instruction", zap.String("instruction", instr.Instruction))
+		return
+	}
+
+	newSession := s.NewSessionWithId(sessionId, handler.Action)
+	newSession.readCh <- instr.Message
 }

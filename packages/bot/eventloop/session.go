@@ -5,8 +5,10 @@ import (
 	"sync"
 
 	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/lib"
+	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/logger"
 	"github.com/bytedance/sonic"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 type SessionHub struct {
@@ -24,9 +26,8 @@ func NewSessionHub(ctx context.Context) *SessionHub {
 }
 
 type Session struct {
-	RobotId    string
-	SessionId  uuid.UUID
-	CancelFunc func()
+	RobotId   string
+	SessionId uuid.UUID
 	// This channel is used to communicate with internal
 	// running goroutine.
 	// The internal goroutine will directly write to
@@ -38,27 +39,25 @@ type Session struct {
 
 func (s *SessionHub) NewSession(action lib.SessionAction) *Session {
 	sessionId := uuid.New()
-	ctx := context.WithValue(s.ctx, lib.SessionIdCtxKey{}, sessionId)
 
-	return s.newSessionWithId(ctx, action)
+	return s.NewSessionWithId(sessionId, action)
 }
 
-func (s *SessionHub) newSessionWithId(ctx context.Context, action lib.SessionAction) *Session {
+func (s *SessionHub) NewSessionWithId(sessionId uuid.UUID, action lib.SessionAction) *Session {
+	ctx := context.WithValue(s.ctx, lib.SessionIdCtxKey{}, sessionId)
 	internalCh := make(chan sonic.NoCopyRawMessage)
-	// Safely extract RobotId from context; default to empty string if missing
+
 	var robotId string
 	if v := ctx.Value(lib.RobotIdCtxKey{}); v != nil {
 		if rid, ok := v.(string); ok {
 			robotId = rid
 		}
 	}
-	sessionId := ctx.Value(lib.SessionIdCtxKey{}).(uuid.UUID)
-	ctx, cancelFunc := context.WithCancel(ctx)
+
 	session := &Session{
-		RobotId:    robotId,
-		SessionId:  sessionId,
-		CancelFunc: cancelFunc,
-		readCh:     internalCh,
+		RobotId:   robotId,
+		SessionId: sessionId,
+		readCh:    internalCh,
 	}
 
 	s.lock.Lock()
@@ -66,7 +65,9 @@ func (s *SessionHub) newSessionWithId(ctx context.Context, action lib.SessionAct
 	s.lock.Unlock()
 
 	go func() {
-		defer cancelFunc()
+		defer func() {
+			s.DeleteSession(session.SessionId)
+		}()
 		actionCtx := context.WithValue(ctx, lib.ResponseReaderCtxKey{}, internalCh)
 		(action)(actionCtx)
 	}()
@@ -85,4 +86,5 @@ func (s *SessionHub) DeleteSession(sessionId uuid.UUID) {
 	s.lock.Lock()
 	delete(s.sessions, sessionId)
 	s.lock.Unlock()
+	logger.Logger().Info("Session deleted", zap.String("session_id", sessionId.String()))
 }

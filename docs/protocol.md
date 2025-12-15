@@ -109,7 +109,7 @@ And their responses share this response format:
 **Message**:
 ```json
 {
-    "id": "<new robot id>"
+    "robot_id": "<new robot id>"
 }
 ```
 

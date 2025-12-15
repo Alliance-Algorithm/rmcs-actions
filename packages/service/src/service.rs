@@ -1,5 +1,6 @@
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
+use dashmap::DashMap;
 use futures_util::{SinkExt, StreamExt};
 use poem::{
     IntoResponse, handler,
@@ -18,6 +19,9 @@ pub mod events;
 pub mod instructions;
 pub mod message;
 
+pub static CONNECTIONS: LazyLock<Arc<DashMap<String, Arc<Connection>>>> =
+    LazyLock::new(|| Arc::new(DashMap::new()));
+
 #[handler]
 pub fn websocket_service(
     Path(robot_id): Path<String>,
@@ -25,13 +29,17 @@ pub fn websocket_service(
 ) -> impl IntoResponse {
     ws.on_upgrade(move |socket| async move {
         let (mut sink, mut stream) = socket.split();
-
-        let connection = Arc::new(Connection::new(robot_id));
         let (ws_writer, mut ws_reader) =
             tokio::sync::mpsc::channel::<message::Message>(100);
 
+        let connection = Arc::new(Connection::new(robot_id, ws_writer));
+        CONNECTIONS
+            .insert(connection.robot_id.clone(), connection.clone());
+
         let (shutdown_listener, mut shutdown) =
             tokio::sync::oneshot::channel::<()>();
+        
+        let connection_c = connection.clone();
 
         tokio::spawn(async move {
             while let Some(msg) = stream.next().await {
@@ -40,7 +48,7 @@ pub fn websocket_service(
                         if let Message::Text(text) = msg {
                             log::info!("Received WebSocket message: {}", text);
                             if let Err(err) =
-                                connection.recv(&text, ws_writer.clone()).await
+                                connection.recv(&text).await
                             {
                                 log::error!(
                                     "Failed to process message: {:?}",
@@ -64,11 +72,14 @@ pub fn websocket_service(
             }
         });
 
+
         tokio::spawn(async move {
             loop {
                 select! {
                     Some(msg) = ws_reader.recv() => {
-                        if let Err(e) = sink.send(Message::Text(serde_json::to_string(&msg).unwrap())).await {
+                        let msg = Message::Text(serde_json::to_string(&msg).unwrap());
+                        log::debug!("Sending WebSocket message: {:?}", msg);
+                        if let Err(e) = sink.send(msg).await {
                             log::error!(
                                 "Failed to send websocket message: {}",
                                 e
@@ -78,6 +89,7 @@ pub fn websocket_service(
                     }
                     _ = &mut shutdown => {
                         log::info!("Shutting down WebSocket writer");
+                        CONNECTIONS.remove(connection_c.robot_id.as_str());
                         break;
                     }
                     else => {
