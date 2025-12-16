@@ -2,6 +2,7 @@
   import Navbar from './Navbar.svelte';
   import Sidebar from '$lib/components/Sidebar.svelte';
   import Footer from '$lib/components/Footer.svelte';
+  import SidebarContent from './SidebarContent.svelte';
 
   const { children }: { children: () => any } = $props();
 </script>
@@ -16,7 +17,9 @@
   <!-- Main area grows to fill available space; add top padding to account for fixed header -->
   <main class="flex-1 overflow-hidden pt-[70px] lg:pt-[89px]">
     <div class="overflow-hidden lg:flex h-full">
-      <Sidebar>1234</Sidebar>
+      <Sidebar>
+        <SidebarContent />
+      </Sidebar>
 
       <!-- Content region: make it a flex column item that can scroll internally."
            min-h-0 is important so the flex child can shrink and allow overflow-y-auto to work. -->
