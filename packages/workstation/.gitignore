@@ -24,3 +24,5 @@ vite.config.ts.timestamp-*
 
 # configuration
 .vscode/settings.json
+
+/.idea
