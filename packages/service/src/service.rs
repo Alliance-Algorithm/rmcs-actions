@@ -27,6 +27,9 @@ pub fn websocket_service(
     Path(robot_id): Path<String>,
     ws: WebSocket,
 ) -> impl IntoResponse {
+    // Sync robot id and register it
+    log::info!("WebSocket connection established for robot: {}", robot_id);
+
     ws.on_upgrade(move |socket| async move {
         let (mut sink, mut stream) = socket.split();
         let (ws_writer, mut ws_reader) =

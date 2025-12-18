@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/config"
 	"github.com/bytedance/sonic"
@@ -42,13 +43,17 @@ func (b *BaseRequest[Req, Resp]) Send(ctx context.Context) (Resp, error) {
 	var response Resp
 
 	// Get base URL from context
-	config, ok := config.GetConfigFromCtx(ctx)
-	if !ok || config.Service.Api == "" {
+	cfg, ok := config.GetConfigFromCtx(ctx)
+	if !ok || cfg.Service.Api == "" {
 		return response, fmt.Errorf("base URL not found in context")
 	}
 
 	// Construct full URL
-	fullURL := config.Service.Api + b.EndpointPath
+	fullURL := cfg.Service.Api + b.EndpointPath
+	parsedURL, err := url.Parse(fullURL)
+	if err != nil {
+		return response, fmt.Errorf("failed to parse request url: %w", err)
+	}
 
 	// Marshal request body
 	var bodyReader io.Reader
@@ -58,10 +63,18 @@ func (b *BaseRequest[Req, Resp]) Send(ctx context.Context) (Resp, error) {
 			return response, fmt.Errorf("failed to marshal request body: %w", err)
 		}
 		bodyReader = bytes.NewReader(bodyBytes)
+	} else {
+		query, err := encodeQueryParams(b.Body)
+		if err != nil {
+			return response, fmt.Errorf("failed to encode query params: %w", err)
+		}
+		if query != "" {
+			parsedURL.RawQuery = query
+		}
 	}
 
 	// Create HTTP request
-	req, err := http.NewRequestWithContext(ctx, b.HTTPMethod, fullURL, bodyReader)
+	req, err := http.NewRequestWithContext(ctx, b.HTTPMethod, parsedURL.String(), bodyReader)
 	if err != nil {
 		return response, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -97,4 +110,54 @@ func (b *BaseRequest[Req, Resp]) Send(ctx context.Context) (Resp, error) {
 	}
 
 	return response, nil
+}
+
+// encodeQueryParams converts a request body object into URL query parameters for GET/HEAD requests.
+func encodeQueryParams(body any) (string, error) {
+	if body == nil {
+		return "", nil
+	}
+
+	if values, ok := body.(url.Values); ok {
+		return values.Encode(), nil
+	}
+
+	bodyBytes, err := sonic.Marshal(body)
+	if err != nil {
+		return "", err
+	}
+
+	var kv map[string]any
+	if err := json.Unmarshal(bodyBytes, &kv); err != nil {
+		return "", fmt.Errorf("expected object for query parameters: %w", err)
+	}
+
+	if len(kv) == 0 {
+		return "", nil
+	}
+
+	values := url.Values{}
+	for key, val := range kv {
+		appendQueryValue(values, key, val)
+	}
+
+	return values.Encode(), nil
+}
+
+func appendQueryValue(values url.Values, key string, val any) {
+	if val == nil {
+		return
+	}
+
+	switch v := val.(type) {
+	case []any:
+		for _, item := range v {
+			if item == nil {
+				continue
+			}
+			values.Add(key, fmt.Sprint(item))
+		}
+	default:
+		values.Add(key, fmt.Sprint(v))
+	}
 }

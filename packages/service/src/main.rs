@@ -1,22 +1,33 @@
 use poem::{EndpointExt, Route, get};
 use poem_openapi::OpenApiService;
 
-use crate::api::Api;
+use crate::api::{Api, ident::IdentApi};
 
 mod api;
 mod constant;
+mod database;
 mod env;
 mod logger;
-mod utils;
 mod service;
+mod utils;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env::load_env()?;
     logger::init_logger()?;
 
-    let api_service = OpenApiService::new(Api, "RMCS Actions Service", "1.0")
-        .server("http://localhost:3000/api");
+    // Initialize database before starting the server
+    let database_url =
+        std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let db = database::Database::new(&database_url).await?;
+    db.init().await?;
+    database::DATABASE
+        .set(db)
+        .map_err(|_| anyhow::anyhow!("Failed to set database"))?;
+
+    let api_service =
+        OpenApiService::new((Api, IdentApi), "RMCS Actions Service", "1.0")
+            .server("http://localhost:3000/api");
     let ui = api_service.swagger_ui();
     let app = Route::new()
         .nest("/api", api_service)

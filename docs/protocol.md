@@ -25,12 +25,14 @@ first try to identify itself.
 This is done by:
 1.  Fetch local storage to get a __cached__ robot id.
 2.  If there's no predefined robot id found,
-    send a request to `/ident/whoami` providing necessary
+    send a request to `/ident/retrieve` providing necessary
     identification messages including MAC address.
+    The server will try to search the device in database.
+    If any matches, it will be sent as the identification.
+3.  If no entry matches, send a request to `/ident/whoami`.
     The server will grant the robot a unique __robot id__
-    and the robot _shall_ store it properly.  
-    For more information, see the server's documentation
-    or visit [here](#whoami) to get a quick review.
+    and the robot _shall_ store it properly.
+4.  After got all identify information, post `/ident/sync`.
 
 The bot's daemon will then try to connect to the `/ws/:robot-id` endpoint
 after startup (which is triggered either manually or by the container.)
@@ -193,26 +195,4 @@ All events share the following format:
 **Response**:
 ```json
 { }
-```
-
-## Appendix
-
-### Whoami
-
-**WARNING:** THIS SECTION MIGHT BE OUTDATED.
-
-**Method**: `POST`
-**Endpoint**: `/ident/whoami`
-**Request**:
-```jsonc
-{
-    "username": "<current login username>",
-    "mac": "<MAC address>",
-}
-```
-**Response**:
-```jsonc
-{
-    "robot_id": "<robot id>"
-}
 ```

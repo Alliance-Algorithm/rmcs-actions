@@ -23,18 +23,6 @@ impl Api {
         Json(meta::version::Version::default())
     }
 
-    #[oai(path = "/ident/whoami", method = "post")]
-    async fn whoami(
-        &self,
-        info: Json<ident::whoami::WhoAmI>,
-    ) -> Json<ident::whoami::WhoAmIResponse> {
-        // Placeholder implementation
-        println!("Received WhoAmI info: {:?}", info);
-        Json(ident::whoami::WhoAmIResponse {
-            robot_id: format!("robot_{}:{}", info.username, info.mac),
-        })
-    }
-
     #[oai(path = "/action/set_robot_id", method = "post")]
     async fn set_robot_id(
         &self,
