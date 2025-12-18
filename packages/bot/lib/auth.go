@@ -15,10 +15,9 @@ import (
 )
 
 type robotInfo struct {
-	RobotId string    `json:"robot_id"`
-	Mac     string    `json:"mac"`
-	Name    string    `json:"name"`
-	Uuid    uuid.UUID `json:"uuid"`
+	Mac  string    `json:"mac"`
+	Name string    `json:"name"`
+	Uuid uuid.UUID `json:"uuid"`
 }
 
 func getRobotIdFromLocalStorage(ctx context.Context) (*robotInfo, error) {
@@ -66,7 +65,7 @@ func retrieveRemoteRobotId(ctx context.Context, username string, mac string) (id
 		MacAddress: mac,
 	})
 	resp, err := retrieveReq.Send(ctx)
-	if err != nil || resp.RobotId == "" {
+	if err != nil || resp.Uuid == uuid.Nil {
 		whoamiReq := ident.NewWhoAmIRequest(ident.WhoAmIRequestBody{
 			UserName: username,
 			Mac:      mac,
@@ -76,10 +75,9 @@ func retrieveRemoteRobotId(ctx context.Context, username string, mac string) (id
 			return ident.RetrieveResponse{}, err
 		}
 		return ident.RetrieveResponse{
-			RobotId: whoami.RobotId,
-			Mac:     mac,
-			Name:    whoami.RobotName,
-			Uuid:    whoami.RobotUuid,
+			Mac:  mac,
+			Name: whoami.RobotName,
+			Uuid: whoami.RobotUuid,
 		}, nil
 	}
 	return resp, nil
@@ -110,42 +108,39 @@ func getRobotAuthInfo(ctx context.Context) (*robotInfo, error) {
 		return nil, err
 	}
 
-	logger.Logger().Info("Robot authenticated", zap.String("robot_id", remoteInfo.RobotId))
+	logger.Logger().Info("Robot authenticated", zap.String("uuid", remoteInfo.Uuid.String()))
 
 	return &robotInfo{
-		RobotId: remoteInfo.RobotId,
-		Mac:     remoteInfo.Mac,
-		Name:    remoteInfo.Name,
-		Uuid:    remoteInfo.Uuid,
+		Mac:  remoteInfo.Mac,
+		Name: remoteInfo.Name,
+		Uuid: remoteInfo.Uuid,
 	}, nil
 }
 
-func AuthenticateRobot(ctx context.Context) (string, error) {
+func AuthenticateRobot(ctx context.Context) (uuid.UUID, error) {
 	info, err := getRobotAuthInfo(ctx)
 	if err != nil {
-		return "", err
+		return uuid.Nil, err
 	}
 
 	err = saveRobotIdToLocalStorage(ctx, &robotInfo{
-		RobotId: info.RobotId,
-		Mac:     info.Mac,
-		Name:    info.Name,
-		Uuid:    info.Uuid,
+		Mac:  info.Mac,
+		Name: info.Name,
+		Uuid: info.Uuid,
 	})
 	if err != nil {
-		return "", err
+		return uuid.Nil, err
 	}
 
 	syncReq := ident.NewSyncRequest(ident.SyncRequestBody{
-		RobotId: info.RobotId,
-		Mac:     info.Mac,
-		Name:    info.Name,
-		Uuid:    info.Uuid,
+		Mac:  info.Mac,
+		Name: info.Name,
+		Uuid: info.Uuid,
 	})
 	_, err = syncReq.Send(ctx)
 	if err != nil {
-		return "", err
+		return uuid.Nil, err
 	}
 
-	return info.RobotId, nil
+	return info.Uuid, nil
 }

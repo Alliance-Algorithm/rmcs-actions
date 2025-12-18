@@ -9,7 +9,6 @@ pub struct WhoAmI {
 
 #[derive(Serialize, Deserialize, Object, Debug, Clone)]
 pub struct WhoAmIResponse {
-    pub robot_id: String,
     pub robot_uuid: String,
     pub robot_name: String,
 }

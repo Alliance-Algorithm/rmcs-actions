@@ -11,7 +11,6 @@ type WhoAmIRequestBody struct {
 }
 
 type WhoAmIResponse struct {
-	RobotId   string    `json:"robot_id"`
 	RobotUuid uuid.UUID `json:"robot_uuid"`
 	RobotName string    `json:"robot_name"`
 }

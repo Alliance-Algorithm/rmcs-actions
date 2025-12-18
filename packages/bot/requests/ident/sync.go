@@ -6,10 +6,9 @@ import (
 )
 
 type SyncRequestBody struct {
-	RobotId string    `json:"robot_id"`
-	Mac     string    `json:"mac"`
-	Name    string    `json:"name"`
-	Uuid    uuid.UUID `json:"uuid"`
+	Mac  string    `json:"mac"`
+	Name string    `json:"name"`
+	Uuid uuid.UUID `json:"uuid"`
 }
 
 type SyncResponse struct {
@@ -32,10 +31,9 @@ type RetrieveRequestBody struct {
 }
 
 type RetrieveResponse struct {
-	RobotId string    `json:"robot_id"`
-	Mac     string    `json:"mac"`
-	Name    string    `json:"name"`
-	Uuid    uuid.UUID `json:"uuid"`
+	Mac  string    `json:"mac"`
+	Name string    `json:"name"`
+	Uuid uuid.UUID `json:"uuid"`
 }
 
 type RetrieveRequest = requests.BaseRequest[RetrieveRequestBody, RetrieveResponse]

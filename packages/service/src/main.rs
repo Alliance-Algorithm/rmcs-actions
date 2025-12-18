@@ -1,7 +1,7 @@
 use poem::{EndpointExt, Route, get};
 use poem_openapi::OpenApiService;
 
-use crate::api::{Api, ident::IdentApi};
+use crate::api::{Api, action::ActionApi, ident::IdentApi, stats::StatsApi};
 
 mod api;
 mod constant;
@@ -25,15 +25,18 @@ async fn main() -> anyhow::Result<()> {
         .set(db)
         .map_err(|_| anyhow::anyhow!("Failed to set database"))?;
 
-    let api_service =
-        OpenApiService::new((Api, IdentApi), "RMCS Actions Service", "1.0")
-            .server("http://localhost:3000/api");
+    let api_service = OpenApiService::new(
+        (Api, ActionApi, IdentApi, StatsApi),
+        "RMCS Actions Service",
+        "1.0",
+    )
+    .server("http://localhost:3000/api");
     let ui = api_service.swagger_ui();
     let app = Route::new()
         .nest("/api", api_service)
         .nest("/swagger", ui)
         .at(
-            "/ws/:robot_id",
+            "/ws/:robot_uuid",
             get(service::websocket_service
                 .data(tokio::sync::broadcast::channel::<String>(32).0)),
         );

@@ -18,10 +18,8 @@ impl IdentApi {
         info: Json<whoami::WhoAmI>,
     ) -> Json<whoami::WhoAmIResponse> {
         let uuid = Uuid::new_v4().to_string();
-        let robot_id = format!("robot_{}_{}:{}", info.username, info.mac, uuid);
         let robot_name = format!("robot_{}_{}", info.username, info.mac);
         Json(whoami::WhoAmIResponse {
-            robot_id,
             robot_uuid: uuid,
             robot_name,
         })
@@ -34,7 +32,7 @@ impl IdentApi {
     async fn sync(&self, info: Json<sync::Sync>) -> Json<sync::SyncResponse> {
         let db = database::get_database();
         if let Err(e) = db
-            .register_robot(&info.robot_id, &info.mac, &info.name, &info.uuid)
+            .register_robot(&info.mac, &info.name, &info.uuid)
             .await
         {
             log::error!("Failed to register robot: {}", e);
@@ -54,7 +52,6 @@ impl IdentApi {
         let db = database::get_database();
         match db.fuzz_search_by_name(&username, &mac_address).await {
             Ok(Some(robot)) => Json(Some(sync::RetrieveResponse {
-                robot_id: robot.robot_id,
                 mac: robot.mac,
                 name: robot.name,
                 uuid: robot.uuid,

@@ -14,7 +14,13 @@ impl Database {
 
     pub async fn init(&self) -> Result<(), sqlx::Error> {
         sqlx::query!(
-            "CREATE TABLE IF NOT EXISTS robots (id INTEGER PRIMARY KEY, name TEXT NOT NULL)",
+            "
+                CREATE TABLE IF NOT EXISTS robots (
+                    uuid TEXT PRIMARY KEY NOT NULL,
+                    name TEXT NOT NULL,
+                    mac TEXT NOT NULL
+                )
+            ",
         )
         .execute(&self.connection)
         .await?;

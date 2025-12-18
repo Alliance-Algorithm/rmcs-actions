@@ -42,10 +42,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.Logger().Info("Robot authenticated successfully", zap.String("robot_id", robotId))
+	logger.Logger().Info("Robot authenticated successfully", zap.String("robot_id", robotId.String()))
 	ctx = context.WithValue(ctx, lib.RobotIdCtxKey{}, robotId)
 
-	wsUrl := cfg.Service.Websocket + "/" + robotId
+	wsUrl := cfg.Service.Websocket + "/" + robotId.String()
 
 	dialCtx, cancel := context.WithTimeout(ctx, time.Second)
 	c, _, err := websocket.Dial(dialCtx, wsUrl, nil)

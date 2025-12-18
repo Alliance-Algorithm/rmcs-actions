@@ -24,18 +24,18 @@ pub static CONNECTIONS: LazyLock<Arc<DashMap<String, Arc<Connection>>>> =
 
 #[handler]
 pub fn websocket_service(
-    Path(robot_id): Path<String>,
+    Path(robot_uuid): Path<String>,
     ws: WebSocket,
 ) -> impl IntoResponse {
     // Sync robot id and register it
-    log::info!("WebSocket connection established for robot: {}", robot_id);
+    log::info!("WebSocket connection established for robot: {}", robot_uuid);
 
     ws.on_upgrade(move |socket| async move {
         let (mut sink, mut stream) = socket.split();
         let (ws_writer, mut ws_reader) =
             tokio::sync::mpsc::channel::<message::Message>(100);
 
-        let connection = Arc::new(Connection::new(robot_id, ws_writer));
+        let connection = Arc::new(Connection::new(robot_uuid, ws_writer));
         CONNECTIONS
             .insert(connection.robot_id.clone(), connection.clone());
 

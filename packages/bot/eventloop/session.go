@@ -26,7 +26,7 @@ func NewSessionHub(ctx context.Context) *SessionHub {
 }
 
 type Session struct {
-	RobotId   string
+	RobotId   uuid.UUID
 	SessionId uuid.UUID
 	// This channel is used to communicate with internal
 	// running goroutine.
@@ -47,9 +47,9 @@ func (s *SessionHub) NewSessionWithId(sessionId uuid.UUID, action lib.SessionAct
 	ctx := context.WithValue(s.ctx, lib.SessionIdCtxKey{}, sessionId)
 	internalCh := make(chan sonic.NoCopyRawMessage)
 
-	var robotId string
+	var robotId uuid.UUID
 	if v := ctx.Value(lib.RobotIdCtxKey{}); v != nil {
-		if rid, ok := v.(string); ok {
+		if rid, ok := v.(uuid.UUID); ok {
 			robotId = rid
 		}
 	}

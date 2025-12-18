@@ -1,10 +1,11 @@
+use poem_openapi::Object;
+use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 
 use crate::database::Database;
 
-#[derive(Debug, Clone, FromRow)]
+#[derive(Debug, Clone, FromRow, Object, Serialize, Deserialize)]
 pub struct RobotIdent {
-    pub robot_id: String,
     pub mac: String,
     pub name: String,
     pub uuid: String,
@@ -18,14 +19,22 @@ impl Database {
         Ok(rows.into_iter().map(|row| row.name).collect())
     }
 
+    pub async fn get_robots(&self) -> Result<Vec<RobotIdent>, sqlx::Error> {
+        let rows =
+            sqlx::query_as!(RobotIdent, "SELECT mac, name, uuid FROM robots")
+                .fetch_all(&self.connection)
+                .await?;
+        Ok(rows)
+    }
+
     pub async fn get_robot_by_id(
         &self,
-        robot_id: &str,
+        uuid: &str,
     ) -> Result<Option<RobotIdent>, sqlx::Error> {
         let row = sqlx::query_as!(
             RobotIdent,
-            "SELECT robot_id, mac, name, uuid FROM robots WHERE robot_id = ?",
-            robot_id
+            "SELECT mac, name, uuid FROM robots WHERE uuid = ?",
+            uuid
         )
         .fetch_optional(&self.connection)
         .await?;
@@ -34,7 +43,6 @@ impl Database {
 
     pub async fn register_robot(
         &self,
-        robot_id: &str,
         mac_address: &str,
         name: &str,
         uuid: &str,
@@ -42,11 +50,10 @@ impl Database {
         sqlx::query!(
             "
                 INSERT INTO robots
-                (robot_id, mac, name, uuid) VALUES (?, ?, ?, ?)
+                (mac, name, uuid) VALUES (?, ?, ?)
                 ON CONFLICT(uuid) DO UPDATE SET
-                robot_id=excluded.robot_id, mac=excluded.mac, name=excluded.name
+                mac=excluded.mac, name=excluded.name
             ",
-            robot_id,
             mac_address,
             name,
             uuid
@@ -64,7 +71,7 @@ impl Database {
         let pattern = format!("%{}%", username);
         let row = sqlx::query_as!(
             RobotIdent,
-            "SELECT robot_id, mac, name, uuid FROM robots
+            "SELECT mac, name, uuid FROM robots
             WHERE name = ? AND mac = ? LIMIT 1",
             pattern,
             mac_address
