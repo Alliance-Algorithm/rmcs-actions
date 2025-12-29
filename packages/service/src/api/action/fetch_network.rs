@@ -5,3 +5,6 @@ use serde::{Deserialize, Serialize};
 pub struct FetchNetworkRequest {
     pub robot_id: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Object)]
+pub struct FetchNetworkResponse {}

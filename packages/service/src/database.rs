@@ -1,5 +1,6 @@
 use std::sync::OnceLock;
 
+pub mod network;
 pub mod robot;
 
 pub struct Database {
@@ -30,6 +31,17 @@ impl Database {
 
 pub static DATABASE: OnceLock<Database> = OnceLock::new();
 
-pub fn get_database() -> &'static Database {
-    DATABASE.get().expect("Database not initialized")
+pub fn get_database() -> anyhow::Result<&'static Database> {
+    DATABASE.get().ok_or_else(|| {
+        anyhow::anyhow!("Database not initialized. Make sure to call Database::new and set DATABASE.")
+    })
+}
+
+pub fn with_database<F, R>(f: F) -> anyhow::Result<R>
+where
+    F: FnOnce(&'static Database) -> R,
+{
+    DATABASE.get().map(f).ok_or_else(|| {
+        anyhow::anyhow!("Database not initialized. Make sure to call Database::new and set DATABASE.")
+    })
 }

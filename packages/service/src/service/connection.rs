@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use dashmap::DashMap;
+use serde::de::DeserializeOwned;
 use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
 
@@ -33,10 +34,10 @@ impl Connection {
         self.process_session(session_id, payload).await
     }
 
-    pub async fn send_instruction(
+    pub async fn send_instruction<T: DeserializeOwned>(
         &self,
         instruction: Instruction,
-    ) -> anyhow::Result<serde_json::Value> {
+    ) -> anyhow::Result<T> {
         let (resp_tx, resp_rx) = oneshot::channel();
         let sessions = self.sessions.clone();
         let session_id = Uuid::new_v4();
@@ -49,7 +50,7 @@ impl Connection {
         self.sessions
             .insert(session_id, (session.action, session.close_listener));
         let response = resp_rx.await?;
-        Ok(response)
+        Ok(serde_json::from_value(response)?)
     }
 
     async fn process_session(

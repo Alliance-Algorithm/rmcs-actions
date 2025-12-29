@@ -1,7 +1,10 @@
 use poem_openapi::{OpenApi, param::Query, payload::Json};
 use uuid::Uuid;
 
-use crate::database::{self};
+use crate::{
+    api::ApiResult,
+    database::{self},
+};
 
 pub mod sync;
 pub mod whoami;
@@ -29,16 +32,18 @@ impl IdentApi {
     /// The input might be constructed from the `whoami` response,
     /// or by robot's local cache.
     #[oai(path = "/ident/sync", method = "post")]
-    async fn sync(&self, info: Json<sync::Sync>) -> Json<sync::SyncResponse> {
-        let db = database::get_database();
-        if let Err(e) = db
-            .register_robot(&info.mac, &info.name, &info.uuid)
-            .await
+    async fn sync(
+        &self,
+        info: Json<sync::Sync>,
+    ) -> ApiResult<sync::SyncResponse> {
+        let db = database::get_database()?;
+        if let Err(e) =
+            db.register_robot(&info.mac, &info.name, &info.uuid).await
         {
             log::error!("Failed to register robot: {}", e);
-            return Json(sync::SyncResponse { success: false });
+            return Ok(Json(sync::SyncResponse { success: false }));
         }
-        Json(sync::SyncResponse { success: true })
+        Ok(Json(sync::SyncResponse { success: true }))
     }
 
     /// The `retrieve` endpoint allows fetching robot information by robot ID.
@@ -48,18 +53,18 @@ impl IdentApi {
         &self,
         Query(username): Query<String>,
         Query(mac_address): Query<String>,
-    ) -> Json<Option<sync::RetrieveResponse>> {
-        let db = database::get_database();
+    ) -> ApiResult<Option<sync::RetrieveResponse>> {
+        let db = database::get_database()?;
         match db.fuzz_search_by_name(&username, &mac_address).await {
-            Ok(Some(robot)) => Json(Some(sync::RetrieveResponse {
+            Ok(Some(robot)) => Ok(Json(Some(sync::RetrieveResponse {
                 mac: robot.mac,
                 name: robot.name,
                 uuid: robot.uuid,
-            })),
-            Ok(None) => Json(None),
+            }))),
+            Ok(None) => Ok(Json(None)),
             Err(e) => {
                 log::error!("Failed to retrieve robot: {}", e);
-                Json(None)
+                Ok(Json(None))
             }
         }
     }

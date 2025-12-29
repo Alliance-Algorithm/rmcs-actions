@@ -4,7 +4,8 @@ use poem_openapi::{
 };
 
 use crate::{
-    api::{ApiResult, GenericResponse},
+    api::{AnyDeserialize, ApiResult, GenericResponse},
+    database::with_database,
     service::{CONNECTIONS, instructions::Instruction},
 };
 
@@ -23,7 +24,7 @@ impl ActionApi {
         if let Some(conn) = CONNECTIONS.get(&request.robot_name) {
             let _ = conn
                 .value()
-                .send_instruction(Instruction::SyncRobotId {
+                .send_instruction::<AnyDeserialize>(Instruction::SyncRobotId {
                     robot_id: request.new_robot_name.clone(),
                 })
                 .await;
@@ -39,18 +40,30 @@ impl ActionApi {
         }
     }
 
-    #[oai(path = "/action/fetch_network", method = "post")]
-    async fn fetch_network(
+    #[oai(path = "/action/refresh_network", method = "post")]
+    async fn refresh_network(
         &self,
         request: Json<fetch_network::FetchNetworkRequest>,
-    ) -> ApiResult<serde_json::Value> {
+    ) -> ApiResult<fetch_network::FetchNetworkResponse> {
         if let Some(conn) = CONNECTIONS.get(&request.robot_id) {
             let net_info = conn
                 .value()
                 .send_instruction(Instruction::FetchNetwork {})
                 .await;
             match net_info {
-                Ok(info) => Ok(Json(info)),
+                Ok(info) => {
+                    with_database(|db| {
+                        db.write_network_info(&request.robot_id, &info)
+                    })?
+                    .await
+                    .map_err(|err| {
+                        GenericResponse::InternalError(PlainText(format!(
+                            "Failed to write network info: {}",
+                                err
+                            )))
+                        })?;
+                    Ok(Json(fetch_network::FetchNetworkResponse {}))
+                }
                 Err(err) => {
                     log::error!(
                         "Failed to fetch network info from robot {}: {:?}",
@@ -71,5 +84,40 @@ impl ActionApi {
                 "robot not connected".to_string(),
             )))
         }
+    }
+
+    #[oai(path = "/action/refresh_network_all", method = "post")]
+    async fn refresh_network_all(
+        &self,
+    ) -> ApiResult<fetch_network::FetchNetworkResponse> {
+        for conn in CONNECTIONS.iter() {
+            let robot_id = conn.key().clone();
+            let net_info = conn
+                .value()
+                .send_instruction(Instruction::FetchNetwork {})
+                .await;
+            match net_info {
+                Ok(info) => {
+                    with_database(|db| {
+                        db.write_network_info(&robot_id, &info)
+                    })?
+                    .await
+                    .map_err(|err| {
+                        GenericResponse::InternalError(PlainText(format!(
+                            "Failed to write network info for robot {}: {}",
+                            robot_id, err
+                        )))
+                    })?;
+                }
+                Err(err) => {
+                    log::error!(
+                        "Failed to fetch network info from robot {}: {:?}",
+                        robot_id,
+                        err
+                    );
+                }
+            }
+        }
+        Ok(Json(fetch_network::FetchNetworkResponse {}))
     }
 }

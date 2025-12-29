@@ -8,8 +8,8 @@ use poem_openapi::{
     ApiResponse, OpenApi,
     payload::{Json, PlainText},
 };
+use serde::Deserialize;
 
-use crate::service::{CONNECTIONS, instructions::Instruction};
 
 #[derive(Debug, Clone, ApiResponse)]
 #[oai(bad_request_handler = "bad_request")]
@@ -26,11 +26,11 @@ fn bad_request(err: Error) -> GenericResponse {
     GenericResponse::InternalError(PlainText(format!("Bad request: {}", err)))
 }
 
-impl<T: std::error::Error> From<T> for GenericResponse {
+impl<T: Into<anyhow::Error>> From<T> for GenericResponse {
     fn from(err: T) -> Self {
         GenericResponse::InternalError(PlainText(format!(
             "Internal error: {}",
-            err
+            err.into()
         )))
     }
 }
@@ -52,3 +52,6 @@ impl Api {
         Ok(Json(meta::version::Version::default()))
     }
 }
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+pub struct AnyDeserialize;

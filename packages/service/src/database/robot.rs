@@ -19,12 +19,12 @@ impl Database {
         Ok(rows.into_iter().map(|row| row.name).collect())
     }
 
-    pub async fn get_robots(&self) -> Result<Vec<RobotIdent>, sqlx::Error> {
+    pub async fn get_robots(&self) -> Result<Vec<String>, sqlx::Error> {
         let rows =
-            sqlx::query_as!(RobotIdent, "SELECT mac, name, uuid FROM robots")
+            sqlx::query!("SELECT uuid FROM robots")
                 .fetch_all(&self.connection)
                 .await?;
-        Ok(rows)
+        Ok(rows.into_iter().map(|row| row.uuid).collect())
     }
 
     pub async fn get_robot_by_id(
