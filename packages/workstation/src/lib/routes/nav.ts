@@ -14,6 +14,6 @@ export const navLinks: NavLink[] = [
   },
   {
     display: 'About',
-    href: '/app/about',
+    href: '/about',
   },
 ] as const;

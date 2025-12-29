@@ -22,7 +22,7 @@
   {isOpen}
   closeSidebar={sidebarUi.close}
   params={{ x: -50, duration: 50 }}
-  class="top-0 left-0 mt-[61px] lg:mt-[89px] h-screen w-64 bg-gray-50 transition-transform lg:block dark:bg-gray-800 border-r border-gray-200"
+  class="top-0 left-0 mt-[61px] lg:mt-[94px] h-screen w-64 bg-gray-50 transition-transform lg:block dark:bg-gray-800 border-r border-gray-200"
   classes={{ div: "h-full overflow-y-auto bg-gray-50 dark:bg-gray-800 p-0" }}
 >
   <h4 class="sr-only">Main Menu</h4>

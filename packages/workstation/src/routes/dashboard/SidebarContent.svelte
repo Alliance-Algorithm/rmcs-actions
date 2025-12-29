@@ -38,11 +38,11 @@
       <ShoppingBagSolid
         class={iconClass} />
     {/snippet}
-    <SidebarItem label="Sidebar" href="/docs/components/sidebar" />
+    <SidebarItem label="Sidebar" />
     <SidebarItem label="Billing" />
     <SidebarItem label="Invoice" />
   </SidebarDropdownWrapper>
-  <SidebarItem label="Kanban" {spanClass} href="/">
+  <SidebarItem label="Kanban" {spanClass}>
     {#snippet icon()}
       <GridSolid
         class={iconClass} />
@@ -52,7 +52,7 @@
         class="ms-3 inline-flex items-center justify-center rounded-full bg-gray-200 px-2 text-sm font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300">Pro</span>
     {/snippet}
   </SidebarItem>
-  <SidebarItem label="Inbox" {spanClass} href="/">
+  <SidebarItem label="Inbox" {spanClass}>
     {#snippet icon()}
       <MailBoxSolid
         class={iconClass} />
