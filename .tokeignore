@@ -1,0 +1,4 @@
+/packages/workstation/pnpm-workspace.yaml
+/packages/workstation/pnpm-lock.yaml
+/packages/service/Cargo.lock
+/packages/bot/go.sum

@@ -14,3 +14,7 @@ This project is licensed under the MIT License.
 
 For parts containing third-party code,
 please refer to the respective directories for their specific licenses.
+
+## Code Graph
+
+![Code Graph](tokei-chart.png)

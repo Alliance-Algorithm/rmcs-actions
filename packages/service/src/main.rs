@@ -1,4 +1,4 @@
-use poem::{EndpointExt, Route, get};
+use poem::{EndpointExt, Route, get, middleware::Cors};
 use poem_openapi::OpenApiService;
 
 use crate::api::{Api, action::ActionApi, ident::IdentApi, stats::StatsApi};
@@ -25,6 +25,11 @@ async fn main() -> anyhow::Result<()> {
         .set(db)
         .map_err(|_| anyhow::anyhow!("Failed to set database"))?;
 
+    let cors = Cors::new()
+        .allow_origin("http://localhost:5173")
+        .allow_methods(vec!["GET", "POST"])
+        .allow_credentials(true);
+
     let api_service = OpenApiService::new(
         (Api, ActionApi, IdentApi, StatsApi),
         "RMCS Actions Service",
@@ -39,7 +44,8 @@ async fn main() -> anyhow::Result<()> {
             "/ws/:robot_uuid",
             get(service::websocket_service
                 .data(tokio::sync::broadcast::channel::<String>(32).0)),
-        );
+        )
+        .with(cors);
 
     poem::Server::new(poem::listener::TcpListener::bind("0.0.0.0:3000"))
         .run(app)
