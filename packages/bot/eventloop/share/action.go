@@ -10,8 +10,8 @@ import (
 	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/logger"
 )
 
-type OneShotAction[T any] func(request T)
-type ResponseAction[T any, O any] func(request T) O
+type OneShotAction[T any] func(context context.Context, request T)
+type ResponseAction[T any, O any] func(context context.Context, request T) O
 
 func WrapOneShotAction[T any](action OneShotAction[T]) lib.SessionAction {
 	return func(ctx context.Context) {
@@ -22,7 +22,7 @@ func WrapOneShotAction[T any](action OneShotAction[T]) lib.SessionAction {
 			logger.Logger().Error("Failed to unmarshal request in OneShotAction", zap.Error(err))
 			return
 		}
-		(action)(req)
+		(action)(ctx, req)
 	}
 }
 
@@ -40,7 +40,7 @@ func WrapResponseAction[T any, O any](action ResponseAction[T, O]) lib.SessionAc
 			}
 		}
 
-		response := (action)(req)
+		response := (action)(ctx, req)
 		wrapped := NewMessage(ctx, NewResponse(response))
 		ctx.Value(lib.WsWriterCtxKey{}).(chan any) <- wrapped
 	}

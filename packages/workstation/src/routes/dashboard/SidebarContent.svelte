@@ -7,7 +7,7 @@
     MailBoxSolid,
     UserSolid,
     ArrowRightToBracketOutline,
-    AdjustmentsHorizontalSolid
+    AdjustmentsHorizontalSolid,
   } from 'flowbite-svelte-icons';
   import { page } from '$app/state';
 
@@ -16,7 +16,7 @@
   const sidebarMatch: string | string[] = 'docs/components/sidebar';
   const matchesRoute = $derived.by(() => {
     const list = Array.isArray(sidebarMatch) ? sidebarMatch : [sidebarMatch];
-    return list.some(p => activeUrl.startsWith(`/${p}`));
+    return list.some((p) => activeUrl.startsWith(`/${p}`));
   });
 
   $effect(() => {
@@ -24,7 +24,8 @@
   });
 
   const spanClass = 'flex-1 ms-3 whitespace-nowrap';
-  const iconClass = 'h-5 w-5 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white';
+  const iconClass =
+    'h-5 w-5 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white';
 </script>
 
 <SidebarGroup>
@@ -33,6 +34,7 @@
       <DribbbleSolid class={iconClass} />
     {/snippet}
   </SidebarItem>
+  <!--
   <SidebarDropdownWrapper label="E-commerce" classes={{ btn: "p-2" }} isOpen={matchesRoute}>
     {#snippet icon()}
       <ShoppingBagSolid
@@ -79,4 +81,5 @@
       <AdjustmentsHorizontalSolid class={iconClass} />
     {/snippet}
   </SidebarItem>
+  -->
 </SidebarGroup>

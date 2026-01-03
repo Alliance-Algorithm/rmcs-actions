@@ -4,12 +4,7 @@
   import { page } from '$app/state';
   import logo from '$lib/images/logo.png';
   import { navLinks } from '$lib/routes/nav';
-  import {
-    backendOnline,
-    checkBackendStatus,
-    isCheckingBackend,
-  } from '../../routes/dashboard/status.svelte';
-  import { fetchStatsRobots, StatsRobotsResponse } from '$lib/api/stats/robots';
+  import { backendOnline, checkBackendStatus, isCheckingBackend } from '$lib/stores/status';
 
   let activeUrl = $derived(page.url.pathname);
   let baseUrl = $derived.by(() => {
@@ -32,7 +27,7 @@
     {#each navLinks as { href, display }}
       <NavLi {href}>{display}</NavLi>
     {/each}
-    <NavLi onclick={() => !$isCheckingBackend && checkBackendStatus()}>
+    <NavLi onclick={() => checkBackendStatus()}>
       <span
         class="gap-1 font-semibold flex items-center cursor-pointer px-2 hover:bg-gray-100"
         color="alternative"

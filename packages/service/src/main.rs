@@ -26,8 +26,8 @@ async fn main() -> anyhow::Result<()> {
         .map_err(|_| anyhow::anyhow!("Failed to set database"))?;
 
     let cors = Cors::new()
-        .allow_origin("http://localhost:5173")
         .allow_methods(vec!["GET", "POST"])
+        .allow_headers(vec!["content-type"])
         .allow_credentials(true);
 
     let api_service = OpenApiService::new(

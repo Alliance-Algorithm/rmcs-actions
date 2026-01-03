@@ -4,6 +4,17 @@
   import './layout.css';
   import { BullhornSolid } from 'flowbite-svelte-icons';
   import Link from '$lib/components/Link.svelte';
+  import { onMount } from 'svelte';
+  import { afterNavigate } from '$app/navigation';
+  import { checkBackendStatus } from '$lib/stores/status';
+
+  onMount(() => {
+    checkBackendStatus();
+  });
+
+  afterNavigate(() => {
+    checkBackendStatus();
+  });
 
   const { children }: { children: () => any } = $props();
 </script>

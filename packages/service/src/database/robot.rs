@@ -20,10 +20,9 @@ impl Database {
     }
 
     pub async fn get_robots(&self) -> Result<Vec<String>, sqlx::Error> {
-        let rows =
-            sqlx::query!("SELECT uuid FROM robots")
-                .fetch_all(&self.connection)
-                .await?;
+        let rows = sqlx::query!("SELECT uuid FROM robots")
+            .fetch_all(&self.connection)
+            .await?;
         Ok(rows.into_iter().map(|row| row.uuid).collect())
     }
 
@@ -79,5 +78,16 @@ impl Database {
         .fetch_optional(&self.connection)
         .await?;
         Ok(row)
+    }
+
+    pub async fn set_robot_name(
+        &self,
+        uuid: &str,
+        name: &str,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!("UPDATE robots SET name = ? WHERE uuid = ?", name, uuid)
+            .execute(&self.connection)
+            .await?;
+        Ok(())
     }
 }

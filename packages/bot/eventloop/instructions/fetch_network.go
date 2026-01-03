@@ -1,6 +1,8 @@
 package instructions
 
 import (
+	"context"
+
 	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/eventloop/share"
 	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/logger"
 	"github.com/shirou/gopsutil/v4/net"
@@ -28,7 +30,7 @@ var FetchNetworkHandler = InstructionHandler{
 	Action:      share.WrapResponseAction(FetchNetworkAction),
 }
 
-func FetchNetworkAction(request FetchNetworkRequest) []NetworkInfo {
+func FetchNetworkAction(ctx context.Context, request FetchNetworkRequest) []NetworkInfo {
 	logger.Logger().Info("FetchNetworkAction called")
 	netInterfaces, _ := net.Interfaces()
 

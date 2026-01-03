@@ -5,28 +5,28 @@ use uuid::Uuid;
 
 use crate::service::{
     action::OnceShot,
-    instructions::{InstructionContent, SyncRobotIdMessage},
+    instructions::{InstructionContent, SyncRobotNameMessage},
     message::Message,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SyncRobotIdRequest {
-    pub robot_id: String,
+pub struct SyncRobotNameRequest {
+    pub robot_name: String,
 }
 
-pub fn sync_robot_id(
+pub fn sync_robot_name(
     resp_tx: oneshot::Sender<serde_json::Value>,
-    new_robot_id: String,
+    new_robot_name: String,
 ) -> OnceShot<impl FnOnce(Uuid) -> BoxFuture<'static, anyhow::Result<Message>>>
 {
     let _ = resp_tx.send(serde_json::json!({}));
     OnceShot(move |session_id: Uuid| {
-        let robot_id = new_robot_id.to_string();
+        let robot_name = new_robot_name.to_string();
         async move {
             Message::new_instruction_with_uuid(
                 session_id,
-                InstructionContent::SyncRobotId {
-                    message: SyncRobotIdMessage { robot_id },
+                InstructionContent::SyncRobotName {
+                    message: SyncRobotNameMessage { robot_name },
                 },
             )
         }

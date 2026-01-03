@@ -1,18 +1,22 @@
 use chrono::{DateTime, Utc};
 use poem_openapi::Object;
 use serde::{Deserialize, Serialize};
+use serde_with::{DefaultOnNull, serde_as};
 
 use crate::database::Database;
 
 pub type NetworkInfo = Vec<NetworkInfoItem>;
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Object)]
 pub struct NetworkInfoItem {
     pub index: i32,
     pub mtu: i32,
     pub name: String,
     pub hardware_addr: String,
+    #[serde_as(deserialize_as = "DefaultOnNull")]
     pub flags: Vec<String>,
+    #[serde_as(deserialize_as = "DefaultOnNull")]
     pub addrs: Vec<Addr>,
 }
 

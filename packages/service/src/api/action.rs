@@ -21,18 +21,24 @@ impl ActionApi {
         &self,
         request: Json<set_robot_name::SetRobotNameRequest>,
     ) -> ApiResult<set_robot_name::SetRobotNameResponse> {
-        if let Some(conn) = CONNECTIONS.get(&request.robot_name) {
+        if let Some(conn) = CONNECTIONS.get(&request.robot_uuid) {
             let _ = conn
                 .value()
-                .send_instruction::<AnyDeserialize>(Instruction::SyncRobotId {
-                    robot_id: request.new_robot_name.clone(),
-                })
-                .await;
+                .send_instruction::<AnyDeserialize>(
+                    Instruction::SyncRobotName {
+                        robot_name: request.new_robot_name.clone(),
+                    },
+                )
+                .await?;
+            let _ = with_database(|db| {
+                db.set_robot_name(&request.robot_uuid, &request.new_robot_name)
+            })?
+            .await?;
             Ok(Json(set_robot_name::SetRobotNameResponse))
         } else {
             log::info!(
                 "No connection found for robot_id: {}",
-                request.robot_name
+                request.robot_uuid
             );
             Err(GenericResponse::BadRequest(PlainText(
                 "robot not connected".to_string(),
@@ -59,9 +65,9 @@ impl ActionApi {
                     .map_err(|err| {
                         GenericResponse::InternalError(PlainText(format!(
                             "Failed to write network info: {}",
-                                err
-                            )))
-                        })?;
+                            err
+                        )))
+                    })?;
                     Ok(Json(fetch_network::FetchNetworkResponse {}))
                 }
                 Err(err) => {

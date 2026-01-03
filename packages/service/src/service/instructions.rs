@@ -8,7 +8,7 @@ use crate::service::{
 };
 
 pub mod fetch_network;
-pub mod sync_robot_id;
+pub mod sync_robot_name;
 
 pub struct InstructionSession {
     pub action: Action,
@@ -37,7 +37,7 @@ where
 }
 
 pub enum Instruction {
-    SyncRobotId { robot_id: String },
+    SyncRobotName { robot_name: String },
     FetchNetwork {},
 }
 
@@ -49,22 +49,22 @@ impl Instruction {
     ) -> impl FnOnce(mpsc::Sender<Message>, F) -> InstructionSession {
         move |output_receiver: mpsc::Sender<Message>, on_complete: F| match self
         {
-            Instruction::SyncRobotId { robot_id } => {
-                create_instruction_session::<sync_robot_id::SyncRobotIdRequest>(
+            Instruction::SyncRobotName { robot_name } => {
+                create_instruction_session::<
+                    sync_robot_name::SyncRobotNameRequest,
+                >(
                     session_id,
                     output_receiver,
-                    sync_robot_id::sync_robot_id(resp_tx, robot_id),
+                    sync_robot_name::sync_robot_name(resp_tx, robot_name),
                     on_complete,
                 )
             }
-            Instruction::FetchNetwork {} => {
-                create_instruction_session::<()>(
-                    session_id,
-                    output_receiver,
-                    fetch_network::fetch_network(resp_tx),
-                    on_complete,
-                )
-            }
+            Instruction::FetchNetwork {} => create_instruction_session::<()>(
+                session_id,
+                output_receiver,
+                fetch_network::fetch_network(resp_tx),
+                on_complete,
+            ),
         }
     }
 }
@@ -72,8 +72,8 @@ impl Instruction {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "instruction")]
 pub enum InstructionContent {
-    #[serde(rename = "sync_robot_id")]
-    SyncRobotId { message: SyncRobotIdMessage },
+    #[serde(rename = "sync_robot_name")]
+    SyncRobotName { message: SyncRobotNameMessage },
     #[serde(rename = "fetch_network")]
     FetchNetwork {},
     #[serde(untagged)]
@@ -81,6 +81,6 @@ pub enum InstructionContent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SyncRobotIdMessage {
-    pub robot_id: String,
+pub struct SyncRobotNameMessage {
+    pub robot_name: String,
 }

@@ -1,10 +1,12 @@
 import { wait } from '$lib/utils/wait';
-import { writable, type Writable } from 'svelte/store';
+import { get, writable, type Writable } from 'svelte/store';
 
 export const backendOnline: Writable<boolean> = writable(false);
 export const isCheckingBackend: Writable<boolean> = writable(false);
 
 export async function checkBackendStatus(): Promise<void> {
+  if (get(isCheckingBackend)) return;
+
   try {
     const response: Response = await wait(
       () =>

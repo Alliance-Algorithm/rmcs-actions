@@ -10,7 +10,6 @@ use poem_openapi::{
 };
 use serde::Deserialize;
 
-
 #[derive(Debug, Clone, ApiResponse)]
 #[oai(bad_request_handler = "bad_request")]
 pub enum GenericResponse {
@@ -54,4 +53,4 @@ impl Api {
 }
 
 #[derive(Debug, Clone, Copy, Deserialize)]
-pub struct AnyDeserialize;
+pub struct AnyDeserialize {}

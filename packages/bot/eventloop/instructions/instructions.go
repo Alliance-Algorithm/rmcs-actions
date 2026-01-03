@@ -16,7 +16,7 @@ type InstructionHandler struct {
 }
 
 var instructionHandlers = []InstructionHandler{
-	SyncRobotIdHandler,
+	SyncRobotNameHandler,
 	FetchNetworkHandler,
 }
 

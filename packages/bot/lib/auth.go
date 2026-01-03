@@ -59,6 +59,21 @@ func saveRobotIdToLocalStorage(ctx context.Context, info *robotInfo) error {
 	return nil
 }
 
+func SetRobotName(ctx context.Context, name string) error {
+	info, err := getRobotIdFromLocalStorage(ctx)
+	if err != nil {
+		logger.Logger().Error("Failed to get robot info from local storage", zap.Error(err))
+		return err
+	}
+	info.Name = name
+	err = saveRobotIdToLocalStorage(ctx, info)
+	if err != nil {
+		logger.Logger().Error("Failed to save robot info to local storage", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
 func retrieveRemoteRobotId(ctx context.Context, username string, mac string) (ident.RetrieveResponse, error) {
 	retrieveReq := ident.NewRetrieveRequest(ident.RetrieveRequestBody{
 		Username:   username,
