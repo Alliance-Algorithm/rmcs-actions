@@ -81,8 +81,8 @@
     <AccordionItem>
       {#snippet header()}
         <div class="flex flex-col">
-          <span class="font-semibold">{robotData?.name}</span>
-          <span class="text-sm text-gray-500">UUID: {robotData?.uuid}</span>
+          <span class="font-semibold">{robotData.name}</span>
+          <span class="text-sm text-gray-500">UUID: {robotData.uuid}</span>
         </div>
       {/snippet}
       <div class="space-y-2">
@@ -93,15 +93,15 @@
               class="cursor-pointer inline hover:text-primary-700"
               onclick={() => robotNameEditDialogOpen = true}
             />
-            {robotData?.name}
+            {robotData.name}
           </span>
         </div>
-        {@render row('UUID', robotData?.uuid)}
+        {@render row('UUID', robotData.uuid)}
         {@render robotNetworks()}
       </div>
     </AccordionItem>
     <!-- Edit dialog -->
-    <RobotNameEditDialog robotUuid={robotData?.uuid} bind:open={robotNameEditDialogOpen} />
+    <RobotNameEditDialog robotUuid={robotData.uuid} initialName={robotData.name} bind:open={robotNameEditDialogOpen} />
   {:else}
     <AccordionItem>
       {#snippet header()}

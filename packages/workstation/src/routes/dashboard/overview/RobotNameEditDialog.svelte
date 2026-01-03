@@ -4,10 +4,11 @@
 
   interface Props {
     robotUuid: string;
+    initialName: string;
     open?: boolean;
   }
 
-  let { robotUuid, open = $bindable(false) }: Props = $props();
+  let { robotUuid, initialName, open = $bindable(false) }: Props = $props();
 
   let error = $state('');
 
@@ -45,7 +46,7 @@
       {/if}
       <Label class="space-y-2">
         <span>New Name</span>
-        <Input type="text" name="robot_name" placeholder="Enter new robot name" required />
+        <Input type="text" name="robot_name" placeholder="Enter new robot name" defaultValue={initialName} required />
       </Label>
       <div class="flex space-x-2">
         <Button type="submit" color="primary">
