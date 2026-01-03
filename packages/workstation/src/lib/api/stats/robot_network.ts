@@ -27,9 +27,10 @@ export const StatsRobotNetworkResponse = z.object({
 export type StatsRobotNetworkResponse = z.infer<typeof StatsRobotNetworkResponse>;
 
 export async function fetchStatsRobotNetwork(
+  trackedFetch: typeof fetch,
   robotUuid: string,
 ): Promise<StatsRobotNetworkResponse> {
-  const response = await fetch(getEndpoint(STATS_ROBOT_NETWORK_ENDPOINT(robotUuid)), {
+  const response = await trackedFetch(getEndpoint(STATS_ROBOT_NETWORK_ENDPOINT(robotUuid)), {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

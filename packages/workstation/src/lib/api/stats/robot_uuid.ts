@@ -11,8 +11,11 @@ export const StatsRobotResponse = z.object({
 
 export type StatsRobotResponse = z.infer<typeof StatsRobotResponse>;
 
-export async function fetchStatsRobot(robotUuid: string): Promise<StatsRobotResponse> {
-  const response = await fetch(getEndpoint(STATS_ROBOT_ENDPOINT(robotUuid)), {
+export async function fetchStatsRobot(
+  trackedFetch: typeof fetch,
+  robotUuid: string,
+): Promise<StatsRobotResponse> {
+  const response = await trackedFetch(getEndpoint(STATS_ROBOT_ENDPOINT(robotUuid)), {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

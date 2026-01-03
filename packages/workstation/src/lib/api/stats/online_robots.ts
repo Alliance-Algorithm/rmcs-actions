@@ -7,8 +7,10 @@ export const StatsOnlineRobotsResponse = z.array(z.uuidv4());
 
 export type StatsOnlineRobotsResponse = z.infer<typeof StatsOnlineRobotsResponse>;
 
-export async function fetchStatsOnlineRobots(): Promise<StatsOnlineRobotsResponse> {
-  const response = await fetch(getEndpoint(STATS_ONLINE_ROBOTS_ENDPOINT), {
+export async function fetchStatsOnlineRobots(
+  trackedFetch: typeof fetch,
+): Promise<StatsOnlineRobotsResponse> {
+  const response = await trackedFetch(getEndpoint(STATS_ONLINE_ROBOTS_ENDPOINT), {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

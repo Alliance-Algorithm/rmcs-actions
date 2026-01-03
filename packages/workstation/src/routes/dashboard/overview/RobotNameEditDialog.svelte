@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Modal, Label, Input, Button } from 'flowbite-svelte';
-  import { actionSetRobotName } from '$lib/api/action/set_robot_name';
+  import { ACTION_SET_ROBOT_NAME_INVALIDATE_KEYS, actionSetRobotName } from '$lib/api/action/set_robot_name';
+  import { invalidateMany } from '$lib/utils/invalidate_many';
 
   interface Props {
     robotUuid: string;
@@ -25,7 +26,8 @@
     }
 
     try {
-      await actionSetRobotName({ robot_uuid: robotUuid, new_robot_name: name.trim() });
+      await actionSetRobotName(fetch, { robot_uuid: robotUuid, new_robot_name: name.trim() });
+      await invalidateMany(ACTION_SET_ROBOT_NAME_INVALIDATE_KEYS(robotUuid));
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to set robot name';
       return;
@@ -52,7 +54,7 @@
         <Button type="submit" color="primary">
           Save Changes
         </Button>
-        <Button type="button" onclick={() => (open = false)} color="alternative">
+        <Button type="button" onclick={() => {open = false; error = '';}} color="alternative">
           Cancel
         </Button>
       </div>
