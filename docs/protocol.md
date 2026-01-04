@@ -5,6 +5,21 @@ between the server and the robot daemon.
 
 The frontend's API is documented elsewhere.
 
+- [Action Protocol](#action-protocol)
+  - [Presuppose](#presuppose)
+  - [Connection](#connection)
+    - [Establishment](#establishment)
+    - [Closing](#closing)
+    - [Format](#format)
+  - [Communication](#communication)
+    - [Closing a Communication](#closing-a-communication)
+    - [Server Instructions](#server-instructions)
+      - [Rename (`sync_robot_id`)](#rename-sync_robot_id)
+      - [Get Network Info (`fetch_network`)](#get-network-info-fetch_network)
+      - [Server Metadata Update (`update_metadata`)](#server-metadata-update-update_metadata)
+    - [Daemon Events](#daemon-events)
+      - [Heartbeat (`heartbeat`)](#heartbeat-heartbeat)
+
 ## Presuppose
 
 -   The daemon _shall_ save its __robot id__ which is unique
@@ -165,6 +180,19 @@ Where `ip addr` is:
     "family": 0   // AF family
 }
 ```
+
+#### Server Metadata Update (`update_metadata`)
+
+**Name**: Server metadata update
+**Endpoint**: `update_metadata`
+**Description**: Inform the robot that the server's metadata has updated.
+
+**Message**:
+```json
+{ }
+```
+
+**NO RESPONSE**
 
 ### Daemon Events
 
