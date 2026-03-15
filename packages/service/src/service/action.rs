@@ -34,9 +34,7 @@ impl Action {
         let fut = task_func(inbound_receiver, receiver, close_listener);
         let handle = tokio::spawn(async move {
             let result = fut.await;
-            if result.is_ok() {
-                on_complete();
-            }
+            on_complete();
             result
         });
         Action {
