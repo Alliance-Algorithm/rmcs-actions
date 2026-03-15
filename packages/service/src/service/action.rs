@@ -341,7 +341,8 @@ pub struct PingPong<F, R> {
 
 // For ping-pong actions
 #[sealed::sealed]
-impl<F, Input, Output, OutputFut, R, ResFut> InitAction<Input, Output> for PingPong<F, R>
+impl<F, Input, Output, OutputFut, R, ResFut> InitAction<Input, Output>
+    for PingPong<F, R>
 where
     F: FnOnce(Uuid) -> OutputFut + Send + 'static,
     Input: 'static + Send + Sync + DeserializeOwned,

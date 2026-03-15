@@ -41,7 +41,7 @@ pub fn websocket_service(
 
         let (shutdown_listener, mut shutdown) =
             tokio::sync::oneshot::channel::<()>();
-        
+
         let connection_c = connection.clone();
 
         tokio::spawn(async move {
