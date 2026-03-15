@@ -1,0 +1,19 @@
+name: Init SQLite for sqlx
+description: Initialize a SQLite database from the service schema for CI jobs.
+
+inputs:
+  db-path:
+    description: Path to the SQLite database file.
+    required: false
+    default: packages/service/ci.db
+  schema-path:
+    description: Path to the SQL schema file.
+    required: false
+    default: packages/service/schema.sql
+
+runs:
+  using: composite
+  steps:
+    - name: Initialize SQLite database
+      shell: bash
+      run: sqlite3 "${{ inputs.db-path }}" < "${{ inputs.schema-path }}"

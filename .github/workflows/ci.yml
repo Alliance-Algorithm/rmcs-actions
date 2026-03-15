@@ -38,7 +38,7 @@ jobs:
           workspaces: packages/service -> target
 
       - name: Init SQLite for sqlx
-        run: sqlite3 packages/service/ci.db < packages/service/schema.sql
+        uses: ./.github/actions/init-sqlite
 
       - name: Cargo fmt
         run: cargo fmt --check
@@ -96,7 +96,7 @@ jobs:
           workspaces: packages/service -> target
 
       - name: Init SQLite for sqlx
-        run: sqlite3 packages/service/ci.db < packages/service/schema.sql
+        uses: ./.github/actions/init-sqlite
 
       - name: Build Rust
         run: cargo build
