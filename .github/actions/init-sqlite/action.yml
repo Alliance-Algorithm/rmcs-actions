@@ -16,4 +16,9 @@ runs:
   steps:
     - name: Initialize SQLite database
       shell: bash
-      run: sqlite3 "${{ inputs.db-path }}" < "${{ inputs.schema-path }}"
+      env:
+        DB_PATH: ${{ inputs.db-path }}
+        SCHEMA_PATH: ${{ inputs.schema-path }}
+      run: |
+        set -euo pipefail
+        sqlite3 "$DB_PATH" < "$SCHEMA_PATH"
