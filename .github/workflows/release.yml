@@ -43,6 +43,9 @@ jobs:
         with:
           workspaces: packages/service -> target
 
+      - name: Remove stale SQLite DB
+        run: rm -f packages/service/ci.db
+
       - name: Init SQLite for sqlx
         run: sqlite3 packages/service/ci.db < packages/service/schema.sql
 
