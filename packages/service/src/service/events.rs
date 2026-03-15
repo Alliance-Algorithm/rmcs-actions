@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
 
-use crate::service::{action::{Action, InitAction, Streaming}, message::Message};
+use crate::service::{
+    action::{Action, InitAction, Streaming},
+    message::Message,
+};
 
 pub mod heartbeat;
 
@@ -35,13 +38,14 @@ pub fn create_event_session(
     let event_message: EventMessage = serde_json::from_value(event_raw)?;
     // Channel for streaming outputs from the action: sender goes into the action,
     // receiver is returned for external consumers to read.
-    let (action, closer) = match event_message.event {
-        Event::Heartbeat => Streaming(heartbeat::heartbeat_task)
-            .init_action(session_id, output_receiver, on_complete),
-        Event::Unknown => {
-            anyhow::bail!("Unknown event type");
-        }
-    };
+    let (action, closer) =
+        match event_message.event {
+            Event::Heartbeat => Streaming(heartbeat::heartbeat_task)
+                .init_action(session_id, output_receiver, on_complete),
+            Event::Unknown => {
+                anyhow::bail!("Unknown event type");
+            }
+        };
     Ok(EventSession {
         action,
         close_listener: closer,

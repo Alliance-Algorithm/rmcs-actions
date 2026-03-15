@@ -1,4 +1,3 @@
-use futures_util::TryFutureExt;
 use serde::{Serialize, de::DeserializeOwned};
 use std::future::Future;
 use tokio::select;
@@ -32,9 +31,12 @@ impl Action {
     {
         let (inbound_sender, inbound_receiver) =
             mpsc::channel::<serde_json::Value>(32);
-        let fut = task_func(inbound_receiver, receiver, close_listener)
-            .and_then(async |_| Ok(on_complete()));
-        let handle = tokio::spawn(async move { fut.await });
+        let fut = task_func(inbound_receiver, receiver, close_listener);
+        let handle = tokio::spawn(async move {
+            let result = fut.await;
+            on_complete();
+            result
+        });
         Action {
             session_id,
             handle,
@@ -309,13 +311,12 @@ where
                         }
                     });
 
-                    let fut = self.0(
+                    self.0(
                         session_id,
                         typed_in_receiver,
                         typed_out_sender,
                         user_close_listener,
-                    );
-                    async move { fut.await }
+                    )
                 },
                 on_complete,
             ),
@@ -341,7 +342,8 @@ pub struct PingPong<F, R> {
 
 // For ping-pong actions
 #[sealed::sealed]
-impl<F, Input, Output, OutputFut, R, ResFut> InitAction<Input, Output> for PingPong<F, R>
+impl<F, Input, Output, OutputFut, R, ResFut> InitAction<Input, Output>
+    for PingPong<F, R>
 where
     F: FnOnce(Uuid) -> OutputFut + Send + 'static,
     Input: 'static + Send + Sync + DeserializeOwned,

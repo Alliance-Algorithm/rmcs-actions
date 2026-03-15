@@ -30,7 +30,7 @@ impl ActionApi {
                     },
                 )
                 .await?;
-            let _ = with_database(|db| {
+            with_database(|db| {
                 db.set_robot_name(&request.robot_uuid, &request.new_robot_name)
             })?
             .await?;

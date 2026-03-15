@@ -43,9 +43,17 @@ jobs:
         with:
           workspaces: packages/service -> target
 
+      - name: Remove stale SQLite DB
+        run: rm -f packages/service/ci.db
+
+      - name: Init SQLite for sqlx
+        run: sqlite3 packages/service/ci.db < packages/service/schema.sql
+
       - name: Build Rust binary
         run: cargo build --release
         working-directory: packages/service
+        env:
+          DATABASE_URL: "sqlite://${{ github.workspace }}/packages/service/ci.db"
 
       - name: Rename binary
         run: cp packages/service/target/release/rmcs-actions-service rmcs-actions-service-linux-amd64

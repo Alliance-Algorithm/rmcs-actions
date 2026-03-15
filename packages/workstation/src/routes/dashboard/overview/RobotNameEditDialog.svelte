@@ -1,6 +1,9 @@
 <script lang="ts">
   import { Modal, Label, Input, Button } from 'flowbite-svelte';
-  import { ACTION_SET_ROBOT_NAME_INVALIDATE_KEYS, actionSetRobotName } from '$lib/api/action/set_robot_name';
+  import {
+    ACTION_SET_ROBOT_NAME_INVALIDATE_KEYS,
+    actionSetRobotName,
+  } from '$lib/api/action/set_robot_name';
   import { invalidateMany } from '$lib/utils/invalidate_many';
 
   interface Props {
@@ -37,7 +40,7 @@
   }
 </script>
 
-<Modal bind:open={open} size="sm">
+<Modal bind:open size="sm">
   <form method="dialog" name="robot_name_form" onsubmit={handleSubmit}>
     <div class="flex flex-col space-y-6">
       <h3 class="mb-4 text-xl font-medium text-gray-900">Edit Robot Name</h3>
@@ -48,13 +51,24 @@
       {/if}
       <Label class="space-y-2">
         <span>New Name</span>
-        <Input type="text" name="robot_name" placeholder="Enter new robot name" defaultValue={initialName} required />
+        <Input
+          type="text"
+          name="robot_name"
+          placeholder="Enter new robot name"
+          defaultValue={initialName}
+          required
+        />
       </Label>
       <div class="flex space-x-2">
-        <Button type="submit" color="primary">
-          Save Changes
-        </Button>
-        <Button type="button" onclick={() => {open = false; error = '';}} color="alternative">
+        <Button type="submit" color="primary">Save Changes</Button>
+        <Button
+          type="button"
+          onclick={() => {
+            open = false;
+            error = '';
+          }}
+          color="alternative"
+        >
           Cancel
         </Button>
       </div>

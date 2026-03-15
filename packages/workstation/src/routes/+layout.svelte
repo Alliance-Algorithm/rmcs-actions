@@ -25,7 +25,9 @@
       <BullhornSolid class="h-3 w-3 text-gray-500 dark:text-gray-400" />
       <span class="sr-only">Light bulb</span>
     </span>
-    <span> KFC Crazy Thursday, <Link href="https://afdian.com/a/embersofthefire">V me 50!</Link></span>
+    <span>
+      KFC Crazy Thursday, <Link href="https://afdian.com/a/embersofthefire">V me 50!</Link></span
+    >
   </p>
 </Banner>
 

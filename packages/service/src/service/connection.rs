@@ -82,7 +82,7 @@ impl Connection {
             }
             MessagePayload::Response { content } => {
                 if let Some(action) = self.sessions.get_mut(&session_id) {
-                    let _ = action.0.resume(content).await?;
+                    action.0.resume(content).await?;
                 } else {
                     log::error!(
                         "Received unknown session response for {session_id}"

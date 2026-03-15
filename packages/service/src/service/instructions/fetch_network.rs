@@ -1,18 +1,15 @@
-use futures_util::{FutureExt, future::BoxFuture};
+use futures_util::FutureExt;
 use tokio::sync::oneshot;
 use uuid::Uuid;
 
-use crate::service::{action::PingPong, message::Message};
+use crate::service::{
+    action::{InitAction, PingPong},
+    message::Message,
+};
 
 pub fn fetch_network(
     resp_tx: oneshot::Sender<serde_json::Value>,
-) -> PingPong<
-    impl FnOnce(Uuid) -> BoxFuture<'static, anyhow::Result<Message>>,
-    impl FnOnce(
-        Uuid,
-        oneshot::Receiver<serde_json::Value>,
-    ) -> BoxFuture<'static, ()>,
-> {
+) -> impl InitAction<(), Message> {
     PingPong {
         constructor: move |session_id: Uuid| {
             async move {

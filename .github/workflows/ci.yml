@@ -37,6 +37,9 @@ jobs:
         with:
           workspaces: packages/service -> target
 
+      - name: Init SQLite for sqlx
+        uses: ./.github/actions/init-sqlite
+
       - name: Cargo fmt
         run: cargo fmt --check
         working-directory: packages/service
@@ -44,6 +47,8 @@ jobs:
       - name: Cargo clippy
         run: cargo clippy -- -D warnings
         working-directory: packages/service
+        env:
+          DATABASE_URL: "sqlite://${{ github.workspace }}/packages/service/ci.db"
 
       # --- Workstation (packages/workstation) ---
       - uses: pnpm/action-setup@v4
@@ -90,9 +95,14 @@ jobs:
         with:
           workspaces: packages/service -> target
 
+      - name: Init SQLite for sqlx
+        uses: ./.github/actions/init-sqlite
+
       - name: Build Rust
         run: cargo build
         working-directory: packages/service
+        env:
+          DATABASE_URL: "sqlite://${{ github.workspace }}/packages/service/ci.db"
 
       # --- Workstation ---
       - uses: pnpm/action-setup@v4
