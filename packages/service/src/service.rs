@@ -101,6 +101,6 @@ pub fn websocket_service(
                     }
                 }
             }
-        })
+        });
     })
 }

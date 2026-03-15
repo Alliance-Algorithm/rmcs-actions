@@ -9,7 +9,6 @@ use crate::service::{
 
 pub mod fetch_network;
 pub mod sync_robot_name;
-pub mod update_metadata;
 
 pub struct InstructionSession {
     pub action: Action,
@@ -40,7 +39,6 @@ where
 pub enum Instruction {
     SyncRobotName { robot_name: String },
     FetchNetwork {},
-    UpdateMetadata {},
 }
 
 impl Instruction {
@@ -65,12 +63,6 @@ impl Instruction {
                 session_id,
                 output_receiver,
                 fetch_network::fetch_network(resp_tx),
-                on_complete,
-            ),
-            Instruction::UpdateMetadata {} => create_instruction_session::<()>(
-                session_id,
-                output_receiver,
-                update_metadata::update_metadata(resp_tx),
                 on_complete,
             ),
         }

@@ -47,7 +47,7 @@
       <span class="font-mono text-sm">
         <EditOutline
           class="cursor-pointer inline hover:text-primary-700"
-          onclick={() => robotNameEditDialogOpen = true}
+          onclick={() => (robotNameEditDialogOpen = true)}
         />
         {stats.name}
       </span>
@@ -57,4 +57,8 @@
   </div>
 </AccordionItem>
 <!-- Edit dialog -->
-<RobotNameEditDialog robotUuid={stats.uuid} initialName={stats.name} bind:open={robotNameEditDialogOpen} />
+<RobotNameEditDialog
+  robotUuid={stats.uuid}
+  initialName={stats.name}
+  bind:open={robotNameEditDialogOpen}
+/>

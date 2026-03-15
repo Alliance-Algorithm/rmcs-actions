@@ -12,13 +12,6 @@ pub struct RobotIdent {
 }
 
 impl Database {
-    pub async fn get_robot_names(&self) -> Result<Vec<String>, sqlx::Error> {
-        let rows = sqlx::query!("SELECT name FROM robots")
-            .fetch_all(&self.connection)
-            .await?;
-        Ok(rows.into_iter().map(|row| row.name).collect())
-    }
-
     pub async fn get_robots(&self) -> Result<Vec<String>, sqlx::Error> {
         let rows = sqlx::query!("SELECT uuid FROM robots")
             .fetch_all(&self.connection)
