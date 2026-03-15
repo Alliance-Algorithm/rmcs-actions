@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Go (packages/bot) ---
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: packages/bot/go.sum
+
+      - name: Go vet
+        run: go vet ./...
+        working-directory: packages/bot
+
+      - name: Install staticcheck
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+
+      - name: Run staticcheck
+        run: staticcheck ./...
+        working-directory: packages/bot
+
+      # --- Rust (packages/service) ---
+      - uses: dtolnay/rust-toolchain@1.92.0
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/service -> target
+
+      - name: Cargo fmt
+        run: cargo fmt --check
+        working-directory: packages/service
+
+      - name: Cargo clippy
+        run: cargo clippy -- -D warnings
+        working-directory: packages/service
+
+      # --- Workstation (packages/workstation) ---
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: packages/workstation/pnpm-lock.yaml
+
+      - name: Install workstation dependencies
+        run: pnpm install
+        working-directory: packages/workstation
+
+      - name: Svelte check
+        run: pnpm run check
+        working-directory: packages/workstation
+
+      - name: Prettier check
+        run: npx prettier --check .
+        working-directory: packages/workstation
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Go ---
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: packages/bot/go.sum
+
+      - name: Build Go
+        run: go build ./...
+        working-directory: packages/bot
+
+      # --- Rust ---
+      - uses: dtolnay/rust-toolchain@1.92.0
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/service -> target
+
+      - name: Build Rust
+        run: cargo build
+        working-directory: packages/service
+
+      # --- Workstation ---
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: packages/workstation/pnpm-lock.yaml
+
+      - name: Install workstation dependencies
+        run: pnpm install
+        working-directory: packages/workstation
+
+      - name: Build workstation
+        run: pnpm run build
+        working-directory: packages/workstation
+
+  check:
+    if: always()
+    needs: [lint, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}

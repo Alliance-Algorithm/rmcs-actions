@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: packages/bot/go.sum
+
+      - name: Build Go binary
+        run: go build -ldflags="-s -w" -o bot-linux-amd64 .
+        working-directory: packages/bot
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bot-linux-amd64
+          path: packages/bot/bot-linux-amd64
+
+  build-rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.92.0
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/service -> target
+
+      - name: Build Rust binary
+        run: cargo build --release
+        working-directory: packages/service
+
+      - name: Rename binary
+        run: cp packages/service/target/release/rmcs-actions-service rmcs-actions-service-linux-amd64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rmcs-actions-service-linux-amd64
+          path: rmcs-actions-service-linux-amd64
+
+  release:
+    needs: [build-go, build-rust]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        run: gh release create "${{ github.ref_name }}" --title "${{ github.ref_name }}" --generate-notes artifacts/*
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
