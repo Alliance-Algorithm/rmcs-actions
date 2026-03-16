@@ -147,12 +147,12 @@ impl ActionApi {
                     let status = info
                         .get("status")
                         .and_then(|v| v.as_str())
-                        .unwrap_or("unknown")
+                        .unwrap_or("error")
                         .to_string();
                     let message = info
                         .get("message")
                         .and_then(|v| v.as_str())
-                        .unwrap_or("")
+                        .unwrap_or("invalid response: missing fields")
                         .to_string();
                     Ok(Json(update_binary::UpdateBinaryResponse {
                         status,
@@ -204,14 +204,14 @@ impl ActionApi {
                     let status = info
                         .get("status")
                         .and_then(|v| v.as_str())
-                        .unwrap_or("unknown")
+                        .unwrap_or("error")
                         .to_string();
                     let message = info
                         .get("message")
                         .and_then(|v| v.as_str())
-                        .unwrap_or("")
+                        .unwrap_or("invalid response: missing fields")
                         .to_string();
-                    if status == "error" {
+                    if status != "post_update" {
                         has_failure = true;
                     }
                     results.push(update_binary::RobotUpdateResult {
