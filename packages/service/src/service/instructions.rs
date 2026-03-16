@@ -9,6 +9,7 @@ use crate::service::{
 
 pub mod fetch_network;
 pub mod sync_robot_name;
+pub mod update_binary;
 
 pub struct InstructionSession {
     pub action: Action,
@@ -39,6 +40,7 @@ where
 pub enum Instruction {
     SyncRobotName { robot_name: String },
     FetchNetwork {},
+    UpdateBinary { artifact_url: String },
 }
 
 impl Instruction {
@@ -65,6 +67,14 @@ impl Instruction {
                 fetch_network::fetch_network(resp_tx),
                 on_complete,
             ),
+            Instruction::UpdateBinary { artifact_url } => {
+                create_instruction_session::<()>(
+                    session_id,
+                    output_receiver,
+                    update_binary::update_binary(resp_tx, artifact_url),
+                    on_complete,
+                )
+            }
         }
     }
 }
@@ -78,6 +88,8 @@ pub enum InstructionContent {
     FetchNetwork {},
     #[serde(rename = "update_metadata")]
     UpdateMetadata {},
+    #[serde(rename = "update_binary")]
+    UpdateBinary { message: UpdateBinaryMessage },
     #[serde(untagged)]
     Unknown(serde_json::Value),
 }
@@ -85,4 +97,9 @@ pub enum InstructionContent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncRobotNameMessage {
     pub robot_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateBinaryMessage {
+    pub artifact_url: String,
 }

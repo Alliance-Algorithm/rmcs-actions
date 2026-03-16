@@ -11,6 +11,7 @@ use crate::{
 
 pub mod fetch_network;
 pub mod set_robot_name;
+pub mod update_binary;
 
 pub struct ActionApi;
 
@@ -125,5 +126,94 @@ impl ActionApi {
             }
         }
         Ok(Json(fetch_network::FetchNetworkResponse {}))
+    }
+
+    #[oai(path = "/action/update_binary", method = "post")]
+    async fn update_binary(
+        &self,
+        request: Json<update_binary::UpdateBinaryRequest>,
+    ) -> ApiResult<update_binary::UpdateBinaryResponse> {
+        if let Some(conn) = CONNECTIONS.get(&request.robot_id) {
+            let result = conn
+                .value()
+                .send_instruction::<serde_json::Value>(Instruction::UpdateBinary {
+                    artifact_url: request.artifact_url.clone(),
+                })
+                .await;
+            match result {
+                Ok(info) => {
+                    let status = info
+                        .get("status")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("unknown")
+                        .to_string();
+                    let message = info
+                        .get("message")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    Ok(Json(update_binary::UpdateBinaryResponse {
+                        status,
+                        message,
+                    }))
+                }
+                Err(err) => {
+                    log::error!(
+                        "Failed to update binary on robot {}: {:?}",
+                        request.robot_id,
+                        err
+                    );
+                    Err(GenericResponse::BadRequest(PlainText(
+                        "failed to update binary".to_string(),
+                    )))
+                }
+            }
+        } else {
+            log::info!(
+                "No connection found for robot_id: {}",
+                request.robot_id
+            );
+            Err(GenericResponse::BadRequest(PlainText(
+                "robot not connected".to_string(),
+            )))
+        }
+    }
+
+    #[oai(path = "/action/update_binary_all", method = "post")]
+    async fn update_binary_all(
+        &self,
+        request: Json<update_binary::UpdateBinaryAllRequest>,
+    ) -> ApiResult<update_binary::UpdateBinaryResponse> {
+        for conn in CONNECTIONS.iter() {
+            let robot_id = conn.key().clone();
+            let result = conn
+                .value()
+                .send_instruction::<AnyDeserialize>(
+                    Instruction::UpdateBinary {
+                        artifact_url: request.artifact_url.clone(),
+                    },
+                )
+                .await;
+            match result {
+                Ok(_) => {
+                    log::info!(
+                        "Update binary instruction sent to robot {}",
+                        robot_id
+                    );
+                }
+                Err(err) => {
+                    log::error!(
+                        "Failed to update binary on robot {}: {:?}",
+                        robot_id,
+                        err
+                    );
+                }
+            }
+        }
+        Ok(Json(update_binary::UpdateBinaryResponse {
+            status: "ok".to_string(),
+            message: "update instruction sent to all connected robots"
+                .to_string(),
+        }))
     }
 }
