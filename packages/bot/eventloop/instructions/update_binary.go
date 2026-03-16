@@ -81,7 +81,13 @@ func UpdateBinaryAction(ctx context.Context, req UpdateBinaryRequest) UpdateBina
 	}
 
 	// Download the binary.
-	resp, err := http.Get(req.ArtifactUrl)
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, req.ArtifactUrl, nil)
+	if err != nil {
+		cleanup()
+		return UpdateBinaryResponse{Status: "error", Message: fmt.Sprintf("failed to create request: %v", err)}
+	}
+	resp, err := httpClient.Do(httpReq)
 	if err != nil {
 		cleanup()
 		return UpdateBinaryResponse{Status: "error", Message: fmt.Sprintf("failed to download binary: %v", err)}
