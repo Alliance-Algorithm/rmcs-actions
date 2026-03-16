@@ -35,14 +35,26 @@ fn parse_update_binary_response(
     update_binary::UpdateBinaryResponse { status, message }
 }
 
-fn update_binary_timeout_response() -> update_binary::UpdateBinaryResponse {
+fn update_binary_error_response(
+    message: impl Into<String>,
+) -> update_binary::UpdateBinaryResponse {
     update_binary::UpdateBinaryResponse {
         status: "error".to_string(),
-        message: format!(
-            "instruction timed out after {} seconds",
-            UPDATE_BINARY_TIMEOUT.as_secs()
-        ),
+        message: message.into(),
     }
+}
+
+fn update_binary_instruction_failure_response(
+    err: impl std::fmt::Display,
+) -> update_binary::UpdateBinaryResponse {
+    update_binary_error_response(format!("instruction failed: {}", err))
+}
+
+fn update_binary_timeout_response() -> update_binary::UpdateBinaryResponse {
+    update_binary_error_response(format!(
+        "instruction timed out after {} seconds",
+        UPDATE_BINARY_TIMEOUT.as_secs()
+    ))
 }
 
 pub struct ActionApi;
@@ -183,9 +195,7 @@ impl ActionApi {
                         request.robot_id,
                         err
                     );
-                    Err(GenericResponse::BadRequest(PlainText(
-                        "failed to update binary".to_string(),
-                    )))
+                    Ok(Json(update_binary_instruction_failure_response(err)))
                 }
                 Err(_) => {
                     log::error!(
@@ -245,10 +255,12 @@ impl ActionApi {
                         robot_id,
                         err
                     );
+                    let response =
+                        update_binary_instruction_failure_response(err);
                     results.push(update_binary::RobotUpdateResult {
                         robot_id,
-                        status: "error".to_string(),
-                        message: format!("instruction failed: {}", err),
+                        status: response.status,
+                        message: response.message,
                     });
                 }
                 Err(_) => {

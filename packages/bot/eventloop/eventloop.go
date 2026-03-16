@@ -39,6 +39,19 @@ func serveEventloop(ctx context.Context, backend *EventloopBackend) {
 	logger.Logger().Info("Event loop shutting down")
 }
 
+func unwrapSendEnvelope(msg any) (any, chan struct{}) {
+	switch env := msg.(type) {
+	case lib.SendEnvelope:
+		return env.Payload, env.Done
+	case *lib.SendEnvelope:
+		if env != nil {
+			return env.Payload, env.Done
+		}
+	}
+
+	return msg, nil
+}
+
 func eventloopSendJson(ctx context.Context, backend *EventloopBackend, send chan any) {
 	for {
 		select {
@@ -50,12 +63,7 @@ func eventloopSendJson(ctx context.Context, backend *EventloopBackend, send chan
 				return
 			}
 
-			payload := msg
-			var done chan struct{}
-			if env, ok := msg.(lib.SendEnvelope); ok {
-				payload = env.Payload
-				done = env.Done
-			}
+			payload, done := unwrapSendEnvelope(msg)
 
 			logger.Logger().Debug("Sending JSON message", zap.Any("message", payload))
 			err := backend.SendJson(ctx, payload)

@@ -88,6 +88,16 @@ Update a single bot's binary.
 }
 ```
 
+If the bot reports an instruction failure or the operation times out, the
+endpoint still responds with HTTP 200 and a business error payload:
+
+```json
+{
+  "status": "error",
+  "message": "instruction timed out after 60 seconds"
+}
+```
+
 ### `POST /action/update_binary_all`
 
 Update all connected bots. Returns per-robot results with individual status and message fields.
