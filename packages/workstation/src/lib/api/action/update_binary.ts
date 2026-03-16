@@ -21,6 +21,19 @@ export const ActionUpdateBinaryResponse = z.object({
 });
 export type ActionUpdateBinaryResponse = z.infer<typeof ActionUpdateBinaryResponse>;
 
+export const RobotUpdateResult = z.object({
+  robot_id: z.string(),
+  status: z.string(),
+  message: z.string(),
+});
+export type RobotUpdateResult = z.infer<typeof RobotUpdateResult>;
+
+export const ActionUpdateBinaryAllResponse = z.object({
+  status: z.string(),
+  results: z.array(RobotUpdateResult),
+});
+export type ActionUpdateBinaryAllResponse = z.infer<typeof ActionUpdateBinaryAllResponse>;
+
 export async function actionUpdateBinary(
   trackedFetch: typeof fetch,
   request: ActionUpdateBinaryRequest,
@@ -37,7 +50,10 @@ export async function actionUpdateBinary(
   });
 
   if (!response.ok) {
-    throw new Error(`Error updating binary: ${response.status} ${response.statusText}`);
+    const detail = await response.text().catch(() => '');
+    throw new Error(
+      `Error updating binary: ${response.status} ${response.statusText}${detail ? ` - ${detail}` : ''}`,
+    );
   }
 
   const data = await response.json();
@@ -47,7 +63,7 @@ export async function actionUpdateBinary(
 export async function actionUpdateBinaryAll(
   trackedFetch: typeof fetch,
   request: ActionUpdateBinaryAllRequest,
-): Promise<ActionUpdateBinaryResponse> {
+): Promise<ActionUpdateBinaryAllResponse> {
   const body = ActionUpdateBinaryAllRequest.parse(request);
 
   const response = await trackedFetch(getEndpoint(ACTION_UPDATE_BINARY_ALL_ENDPOINT), {
@@ -60,9 +76,12 @@ export async function actionUpdateBinaryAll(
   });
 
   if (!response.ok) {
-    throw new Error(`Error updating all binaries: ${response.status} ${response.statusText}`);
+    const detail = await response.text().catch(() => '');
+    throw new Error(
+      `Error updating all binaries: ${response.status} ${response.statusText}${detail ? ` - ${detail}` : ''}`,
+    );
   }
 
   const data = await response.json();
-  return ActionUpdateBinaryResponse.parse(data);
+  return ActionUpdateBinaryAllResponse.parse(data);
 }

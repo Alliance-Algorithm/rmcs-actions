@@ -4,6 +4,7 @@
     actionUpdateBinary,
     actionUpdateBinaryAll,
     type ActionUpdateBinaryResponse,
+    type ActionUpdateBinaryAllResponse,
   } from '$lib/api/action/update_binary';
   import type { PageData } from './$types';
 
@@ -13,16 +14,16 @@
   let selectedRobotId = $state('');
   let loading = $state(false);
   let result: ActionUpdateBinaryResponse | null = $state(null);
+  let allResult: ActionUpdateBinaryAllResponse | null = $state(null);
   let error = $state('');
 
-  const robotOptions = $derived(
-    data.onlineRobots.map((id) => ({ value: id, name: id })),
-  );
+  const robotOptions = $derived(data.onlineRobots.map((id) => ({ value: id, name: id })));
 
   async function handleUpdateSelected() {
     if (!artifactUrl || !selectedRobotId) return;
     loading = true;
     result = null;
+    allResult = null;
     error = '';
     try {
       result = await actionUpdateBinary(fetch, {
@@ -40,9 +41,10 @@
     if (!artifactUrl) return;
     loading = true;
     result = null;
+    allResult = null;
     error = '';
     try {
-      result = await actionUpdateBinaryAll(fetch, {
+      allResult = await actionUpdateBinaryAll(fetch, {
         artifact_url: artifactUrl,
       });
     } catch (err) {
@@ -84,11 +86,7 @@
           {/if}
           Update Selected Bot
         </Button>
-        <Button
-          color="alternative"
-          disabled={loading || !artifactUrl}
-          onclick={handleUpdateAll}
-        >
+        <Button color="alternative" disabled={loading || !artifactUrl} onclick={handleUpdateAll}>
           {#if loading}
             <Spinner size="4" class="me-2" />
           {/if}
@@ -110,5 +108,17 @@
       <span class="font-medium">Status: {result.status}</span>
       <p>{result.message}</p>
     </Alert>
+  {/if}
+
+  {#if allResult}
+    <Alert color={allResult.status === 'partial_failure' ? 'yellow' : 'green'}>
+      <span class="font-medium">Overall: {allResult.status}</span>
+    </Alert>
+    {#each allResult.results as r}
+      <Alert color={r.status === 'error' ? 'red' : 'green'}>
+        <span class="font-medium">{r.robot_id}: {r.status}</span>
+        <p>{r.message}</p>
+      </Alert>
+    {/each}
   {/if}
 </div>
