@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -41,8 +42,18 @@ var elfMagic = []byte{0x7f, 'E', 'L', 'F'}
 // UpdateBinaryAction downloads a new binary from the given artifact URL,
 // validates it as an ELF executable, atomically replaces the current
 // executable, and schedules a restart via syscall.Exec.
+// sanitizeURL returns a host/path summary with query parameters stripped to
+// avoid leaking presigned URL credentials into logs.
+func sanitizeURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "<invalid-url>"
+	}
+	return u.Host + u.Path
+}
+
 func UpdateBinaryAction(ctx context.Context, req UpdateBinaryRequest) UpdateBinaryResponse {
-	logger.Logger().Info("UpdateBinaryAction called", zap.String("artifact_url", req.ArtifactUrl))
+	logger.Logger().Info("UpdateBinaryAction called", zap.String("artifact_url", sanitizeURL(req.ArtifactUrl)))
 
 	execPath, err := os.Executable()
 	if err != nil {
