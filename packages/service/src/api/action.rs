@@ -1,7 +1,10 @@
+use std::time::Duration;
+
 use poem_openapi::{
     OpenApi,
     payload::{Json, PlainText},
 };
+use tokio::time::timeout;
 
 use crate::{
     api::{AnyDeserialize, ApiResult, GenericResponse},
@@ -12,6 +15,35 @@ use crate::{
 pub mod fetch_network;
 pub mod set_robot_name;
 pub mod update_binary;
+
+const UPDATE_BINARY_TIMEOUT: Duration = Duration::from_secs(60);
+
+fn parse_update_binary_response(
+    info: serde_json::Value,
+) -> update_binary::UpdateBinaryResponse {
+    let status = info
+        .get("status")
+        .and_then(|v| v.as_str())
+        .unwrap_or("error")
+        .to_string();
+    let message = info
+        .get("message")
+        .and_then(|v| v.as_str())
+        .unwrap_or("invalid response: missing fields")
+        .to_string();
+
+    update_binary::UpdateBinaryResponse { status, message }
+}
+
+fn update_binary_timeout_response() -> update_binary::UpdateBinaryResponse {
+    update_binary::UpdateBinaryResponse {
+        status: "error".to_string(),
+        message: format!(
+            "instruction timed out after {} seconds",
+            UPDATE_BINARY_TIMEOUT.as_secs()
+        ),
+    }
+}
 
 pub struct ActionApi;
 
@@ -134,32 +166,18 @@ impl ActionApi {
         request: Json<update_binary::UpdateBinaryRequest>,
     ) -> ApiResult<update_binary::UpdateBinaryResponse> {
         if let Some(conn) = CONNECTIONS.get(&request.robot_id) {
-            let result = conn
-                .value()
-                .send_instruction::<serde_json::Value>(
+            let result = timeout(
+                UPDATE_BINARY_TIMEOUT,
+                conn.value().send_instruction::<serde_json::Value>(
                     Instruction::UpdateBinary {
                         artifact_url: request.artifact_url.clone(),
                     },
-                )
-                .await;
+                ),
+            )
+            .await;
             match result {
-                Ok(info) => {
-                    let status = info
-                        .get("status")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("error")
-                        .to_string();
-                    let message = info
-                        .get("message")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("invalid response: missing fields")
-                        .to_string();
-                    Ok(Json(update_binary::UpdateBinaryResponse {
-                        status,
-                        message,
-                    }))
-                }
-                Err(err) => {
+                Ok(Ok(info)) => Ok(Json(parse_update_binary_response(info))),
+                Ok(Err(err)) => {
                     log::error!(
                         "Failed to update binary on robot {}: {:?}",
                         request.robot_id,
@@ -168,6 +186,14 @@ impl ActionApi {
                     Err(GenericResponse::BadRequest(PlainText(
                         "failed to update binary".to_string(),
                     )))
+                }
+                Err(_) => {
+                    log::error!(
+                        "Timed out updating binary on robot {} after {} seconds",
+                        request.robot_id,
+                        UPDATE_BINARY_TIMEOUT.as_secs()
+                    );
+                    Ok(Json(update_binary_timeout_response()))
                 }
             }
         } else {
@@ -191,36 +217,28 @@ impl ActionApi {
 
         for conn in CONNECTIONS.iter() {
             let robot_id = conn.key().clone();
-            let result = conn
-                .value()
-                .send_instruction::<serde_json::Value>(
+            let result = timeout(
+                UPDATE_BINARY_TIMEOUT,
+                conn.value().send_instruction::<serde_json::Value>(
                     Instruction::UpdateBinary {
                         artifact_url: request.artifact_url.clone(),
                     },
-                )
-                .await;
+                ),
+            )
+            .await;
             match result {
-                Ok(info) => {
-                    let status = info
-                        .get("status")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("error")
-                        .to_string();
-                    let message = info
-                        .get("message")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("invalid response: missing fields")
-                        .to_string();
-                    if status != "post_update" {
+                Ok(Ok(info)) => {
+                    let response = parse_update_binary_response(info);
+                    if response.status != "post_update" {
                         has_failure = true;
                     }
                     results.push(update_binary::RobotUpdateResult {
                         robot_id,
-                        status,
-                        message,
+                        status: response.status,
+                        message: response.message,
                     });
                 }
-                Err(err) => {
+                Ok(Err(err)) => {
                     has_failure = true;
                     log::error!(
                         "Failed to update binary on robot {}: {:?}",
@@ -231,6 +249,20 @@ impl ActionApi {
                         robot_id,
                         status: "error".to_string(),
                         message: format!("instruction failed: {}", err),
+                    });
+                }
+                Err(_) => {
+                    has_failure = true;
+                    log::error!(
+                        "Timed out updating binary on robot {} after {} seconds",
+                        robot_id,
+                        UPDATE_BINARY_TIMEOUT.as_secs()
+                    );
+                    let response = update_binary_timeout_response();
+                    results.push(update_binary::RobotUpdateResult {
+                        robot_id,
+                        status: response.status,
+                        message: response.message,
                     });
                 }
             }
