@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use futures_util::future::join_all;
 use poem_openapi::{
     OpenApi,
     payload::{Json, PlainText},
@@ -222,20 +223,28 @@ impl ActionApi {
         &self,
         request: Json<update_binary::UpdateBinaryAllRequest>,
     ) -> ApiResult<update_binary::UpdateBinaryAllResponse> {
+        let update_futures = CONNECTIONS.iter().map(|conn| {
+            let robot_id = conn.key().clone();
+            let connection = conn.value().clone();
+            let artifact_url = request.artifact_url.clone();
+
+            async move {
+                let result = timeout(
+                    UPDATE_BINARY_TIMEOUT,
+                    connection.send_instruction::<serde_json::Value>(
+                        Instruction::UpdateBinary { artifact_url },
+                    ),
+                )
+                .await;
+
+                (robot_id, result)
+            }
+        });
+
         let mut results = Vec::new();
         let mut has_failure = false;
 
-        for conn in CONNECTIONS.iter() {
-            let robot_id = conn.key().clone();
-            let result = timeout(
-                UPDATE_BINARY_TIMEOUT,
-                conn.value().send_instruction::<serde_json::Value>(
-                    Instruction::UpdateBinary {
-                        artifact_url: request.artifact_url.clone(),
-                    },
-                ),
-            )
-            .await;
+        for (robot_id, result) in join_all(update_futures).await {
             match result {
                 Ok(Ok(info)) => {
                     let response = parse_update_binary_response(info);
