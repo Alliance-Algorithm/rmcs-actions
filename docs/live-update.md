@@ -23,7 +23,7 @@ Frontend                  Service                    Bot
    │                         │<───────────────────────│
    │  200 OK                 │                        │
    │<────────────────────────│                        │
-   │                         │                        │ 6. Sleep 1s
+   │                         │                        │ 6. Wait for WS flush
    │                         │                        │ 7. syscall.Exec
    │                         │                        │    (process restarts)
    │                         │                        │
@@ -130,7 +130,7 @@ The overall `status` is `"ok"` when every bot succeeds and `"partial_failure"` w
 The bot uses `syscall.Exec(execPath, os.Args, os.Environ())` to restart:
 
 - **In-place replacement**: The current process image is replaced with the new binary. The PID remains the same.
-- **Delayed execution**: A 1-second sleep in a goroutine allows the WebSocket response to flush through the channel pipeline before the process restarts.
+- **Write-completion gated**: A goroutine waits for the send-done signal from the eventloop (indicating the WebSocket response has been flushed) before calling `syscall.Exec`, instead of relying on a fixed delay.
 - **Re-initialization**: The new binary runs `main()` from scratch, re-authenticates with the service, and re-establishes the WebSocket connection via the existing retry loop.
 - **No rollback (v1)**: If the new binary fails to start, the bot stays down. Rollback is a future enhancement.
 

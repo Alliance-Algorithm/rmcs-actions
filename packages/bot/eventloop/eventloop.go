@@ -49,8 +49,19 @@ func eventloopSendJson(ctx context.Context, backend *EventloopBackend, send chan
 			if !ok {
 				return
 			}
-			logger.Logger().Debug("Sending JSON message", zap.Any("message", msg))
-			err := backend.SendJson(ctx, msg)
+
+			payload := msg
+			var done chan struct{}
+			if env, ok := msg.(lib.SendEnvelope); ok {
+				payload = env.Payload
+				done = env.Done
+			}
+
+			logger.Logger().Debug("Sending JSON message", zap.Any("message", payload))
+			err := backend.SendJson(ctx, payload)
+			if done != nil {
+				close(done)
+			}
 			if err != nil {
 				logger.Logger().Error("Failed to send JSON", zap.Error(err))
 				return

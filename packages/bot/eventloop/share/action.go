@@ -40,8 +40,14 @@ func WrapResponseAction[T any, O any](action ResponseAction[T, O]) lib.SessionAc
 			}
 		}
 
-		response := (action)(ctx, req)
+		done := make(chan struct{})
+		actionCtx := context.WithValue(ctx, lib.WsSendDoneCtxKey{}, done)
+
+		response := (action)(actionCtx, req)
 		wrapped := NewMessage(ctx, NewResponse(response))
-		ctx.Value(lib.WsWriterCtxKey{}).(chan any) <- wrapped
+		ctx.Value(lib.WsWriterCtxKey{}).(chan any) <- lib.SendEnvelope{
+			Payload: wrapped,
+			Done:    done,
+		}
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/eventloop/share"
+	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/lib"
 	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/logger"
 	"go.uber.org/zap"
 )
@@ -140,9 +141,14 @@ func UpdateBinaryAction(ctx context.Context, req UpdateBinaryRequest) UpdateBina
 
 	logger.Logger().Info("Binary replaced successfully, scheduling restart", zap.String("path", execPath))
 
-	// Schedule restart after a short delay so the WebSocket response can flush.
+	// Schedule restart after the WebSocket response has been flushed.
+	// WsSendDoneCtxKey carries a channel that is closed by the eventloop
+	// send goroutine once wsjson.Write completes for this response.
+	done, _ := ctx.Value(lib.WsSendDoneCtxKey{}).(chan struct{})
 	go func() {
-		time.Sleep(1 * time.Second)
+		if done != nil {
+			<-done
+		}
 		logger.Logger().Info("Restarting via syscall.Exec", zap.String("path", execPath))
 		if err := syscall.Exec(execPath, os.Args, os.Environ()); err != nil {
 			logger.Logger().Error("Failed to exec new binary", zap.Error(err))
