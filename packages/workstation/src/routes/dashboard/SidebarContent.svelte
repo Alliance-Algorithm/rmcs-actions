@@ -8,6 +8,7 @@
     UserSolid,
     ArrowRightToBracketOutline,
     AdjustmentsHorizontalSolid,
+    DownloadSolid,
   } from 'flowbite-svelte-icons';
   import { page } from '$app/state';
 
@@ -32,6 +33,11 @@
   <SidebarItem label="Overview" href="/dashboard/overview">
     {#snippet icon()}
       <DribbbleSolid class={iconClass} />
+    {/snippet}
+  </SidebarItem>
+  <SidebarItem label="Update" href="/dashboard/update">
+    {#snippet icon()}
+      <DownloadSolid class={iconClass} />
     {/snippet}
   </SidebarItem>
   <!--
