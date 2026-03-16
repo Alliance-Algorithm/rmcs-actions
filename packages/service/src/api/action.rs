@@ -136,9 +136,11 @@ impl ActionApi {
         if let Some(conn) = CONNECTIONS.get(&request.robot_id) {
             let result = conn
                 .value()
-                .send_instruction::<serde_json::Value>(Instruction::UpdateBinary {
-                    artifact_url: request.artifact_url.clone(),
-                })
+                .send_instruction::<serde_json::Value>(
+                    Instruction::UpdateBinary {
+                        artifact_url: request.artifact_url.clone(),
+                    },
+                )
                 .await;
             match result {
                 Ok(info) => {
@@ -188,11 +190,9 @@ impl ActionApi {
             let robot_id = conn.key().clone();
             let result = conn
                 .value()
-                .send_instruction::<AnyDeserialize>(
-                    Instruction::UpdateBinary {
-                        artifact_url: request.artifact_url.clone(),
-                    },
-                )
+                .send_instruction::<AnyDeserialize>(Instruction::UpdateBinary {
+                    artifact_url: request.artifact_url.clone(),
+                })
                 .await;
             match result {
                 Ok(_) => {
