@@ -47,6 +47,7 @@ Frontend                  Service                    Bot
 ### Response (Bot → Service)
 
 **Success:**
+
 ```json
 {
   "status": "post_update",
@@ -55,6 +56,7 @@ Frontend                  Service                    Bot
 ```
 
 **Error:**
+
 ```json
 {
   "status": "error",
@@ -69,6 +71,7 @@ Frontend                  Service                    Bot
 Update a single bot's binary.
 
 **Request:**
+
 ```json
 {
   "robot_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -77,6 +80,7 @@ Update a single bot's binary.
 ```
 
 **Response:**
+
 ```json
 {
   "status": "post_update",
@@ -89,6 +93,7 @@ Update a single bot's binary.
 Update all connected bots. Returns per-robot results with individual status and message fields.
 
 **Request:**
+
 ```json
 {
   "artifact_url": "https://artifacts.example.com/bot/v1.2.3/bot-linux-amd64"
@@ -96,9 +101,10 @@ Update all connected bots. Returns per-robot results with individual status and 
 ```
 
 **Response:**
+
 ```json
 {
-  "status": "ok",
+  "status": "partial_failure",
   "results": [
     {
       "robot_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -118,12 +124,12 @@ The overall `status` is `"ok"` when every bot succeeds and `"partial_failure"` w
 
 ## Safety Guarantees
 
-| Mechanism | Purpose |
-|---|---|
-| **Same-directory temp file** | Ensures temp file and target are on the same filesystem, which is required for `os.Rename` to be atomic |
-| **ELF magic validation** | Checks first 4 bytes (`\x7fELF`) to prevent replacing the binary with an HTML error page or other invalid content |
-| **Atomic rename** | `os.Rename` on the same filesystem is an atomic operation at the VFS level — the old binary is fully replaced in a single syscall |
-| **Temp file cleanup** | On any error path, the temp file is removed before returning |
+| Mechanism                    | Purpose                                                                                                                           |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Same-directory temp file** | Ensures temp file and target are on the same filesystem, which is required for `os.Rename` to be atomic                           |
+| **ELF magic validation**     | Checks first 4 bytes (`\x7fELF`) to prevent replacing the binary with an HTML error page or other invalid content                 |
+| **Atomic rename**            | `os.Rename` on the same filesystem is an atomic operation at the VFS level — the old binary is fully replaced in a single syscall |
+| **Temp file cleanup**        | On any error path, the temp file is removed before returning                                                                      |
 
 ## Restart Semantics
 
