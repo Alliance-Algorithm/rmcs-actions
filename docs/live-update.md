@@ -86,7 +86,7 @@ Update a single bot's binary.
 
 ### `POST /action/update_binary_all`
 
-Update all connected bots. Per-bot errors are logged server-side but do not fail the request.
+Update all connected bots. Returns per-robot results with individual status and message fields.
 
 **Request:**
 ```json
@@ -99,9 +99,22 @@ Update all connected bots. Per-bot errors are logged server-side but do not fail
 ```json
 {
   "status": "ok",
-  "message": "update instruction sent to all connected robots"
+  "results": [
+    {
+      "robot_id": "550e8400-e29b-41d4-a716-446655440000",
+      "status": "post_update",
+      "message": "success, restarting..."
+    },
+    {
+      "robot_id": "660e8400-e29b-41d4-a716-446655440001",
+      "status": "error",
+      "message": "downloaded file is not a valid ELF binary"
+    }
+  ]
 }
 ```
+
+The overall `status` is `"ok"` when every bot succeeds and `"partial_failure"` when any bot reports an error or returns an unrecognised response.
 
 ## Safety Guarantees
 
@@ -126,5 +139,5 @@ The bot uses `syscall.Exec(execPath, os.Args, os.Environ())` to restart:
 When using `update_binary_all`:
 
 - The instruction is sent to each connected bot sequentially.
-- Per-bot errors are logged but do not abort the loop.
+- Per-bot results are collected and returned in the response, including individual status and error messages.
 - Bot restarts will drop the WebSocket connection, which is expected — the bot reconnects automatically after restart.
