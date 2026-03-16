@@ -185,35 +185,62 @@ impl ActionApi {
     async fn update_binary_all(
         &self,
         request: Json<update_binary::UpdateBinaryAllRequest>,
-    ) -> ApiResult<update_binary::UpdateBinaryResponse> {
+    ) -> ApiResult<update_binary::UpdateBinaryAllResponse> {
+        let mut results = Vec::new();
+        let mut has_failure = false;
+
         for conn in CONNECTIONS.iter() {
             let robot_id = conn.key().clone();
             let result = conn
                 .value()
-                .send_instruction::<AnyDeserialize>(Instruction::UpdateBinary {
-                    artifact_url: request.artifact_url.clone(),
-                })
+                .send_instruction::<serde_json::Value>(
+                    Instruction::UpdateBinary {
+                        artifact_url: request.artifact_url.clone(),
+                    },
+                )
                 .await;
             match result {
-                Ok(_) => {
-                    log::info!(
-                        "Update binary instruction sent to robot {}",
-                        robot_id
-                    );
+                Ok(info) => {
+                    let status = info
+                        .get("status")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("unknown")
+                        .to_string();
+                    let message = info
+                        .get("message")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    if status == "error" {
+                        has_failure = true;
+                    }
+                    results.push(update_binary::RobotUpdateResult {
+                        robot_id,
+                        status,
+                        message,
+                    });
                 }
                 Err(err) => {
+                    has_failure = true;
                     log::error!(
                         "Failed to update binary on robot {}: {:?}",
                         robot_id,
                         err
                     );
+                    results.push(update_binary::RobotUpdateResult {
+                        robot_id,
+                        status: "error".to_string(),
+                        message: format!("instruction failed: {}", err),
+                    });
                 }
             }
         }
-        Ok(Json(update_binary::UpdateBinaryResponse {
-            status: "ok".to_string(),
-            message: "update instruction sent to all connected robots"
-                .to_string(),
+
+        let overall_status = if has_failure { "partial_failure" } else { "ok" };
+
+        Ok(Json(update_binary::UpdateBinaryAllResponse {
+            status: overall_status.to_string(),
+            results,
         }))
     }
 }
