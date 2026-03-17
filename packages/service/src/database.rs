@@ -25,6 +25,19 @@ impl Database {
         )
         .execute(&self.connection)
         .await?;
+
+        sqlx::query!(
+            "
+                CREATE TABLE IF NOT EXISTS network_info (
+                    robot_uuid   TEXT PRIMARY KEY NOT NULL,
+                    info         TEXT NOT NULL,
+                    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+                )
+            ",
+        )
+        .execute(&self.connection)
+        .await?;
+
         Ok(())
     }
 }
