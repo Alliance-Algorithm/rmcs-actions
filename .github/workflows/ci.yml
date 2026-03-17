@@ -85,7 +85,7 @@ jobs:
           cache-dependency-path: packages/bot/go.sum
 
       - name: Build Go
-        run: go build ./...
+        run: go build -ldflags="-X main.Version=ci-${{ github.sha }}" ./...
         working-directory: packages/bot
 
       # --- Rust ---

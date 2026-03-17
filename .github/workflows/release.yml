@@ -20,7 +20,7 @@ jobs:
           cache-dependency-path: packages/bot/go.sum
 
       - name: Build Go binary
-        run: go build -ldflags="-s -w" -o bot-linux-amd64 .
+        run: go build -ldflags="-s -w -X main.Version=${{ github.ref_name }}" -o bot-linux-amd64 .
         working-directory: packages/bot
         env:
           GOOS: linux
