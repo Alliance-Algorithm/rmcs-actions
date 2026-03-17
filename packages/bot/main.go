@@ -19,10 +19,19 @@ import (
 	"github.com/Alliance-Algorithm/rmcs-actions/packages/bot/logger"
 )
 
+// Version is set at build time via -ldflags.
+var Version = "dev"
+
 func main() {
 	// Parse command line arguments
 	configPath := flag.String("config", "config.yaml", "Path to config file")
+	showVersion := flag.Bool("version", false, "Print version and exit")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println(Version)
+		return
+	}
 
 	cfg, err := config.LoadConfig(*configPath)
 	if err != nil {
