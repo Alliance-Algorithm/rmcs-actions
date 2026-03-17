@@ -2,6 +2,10 @@
 name = "rmcs-actions-service"
 version = "0.1.0"
 edition = "2024"
+description = "Backend web server for RMCS Actions remote management"
+license = "MIT"
+repository = "https://github.com/Alliance-Algorithm/rmcs-actions"
+publish = false
 
 [dependencies]
 anyhow = "1.0.100"
