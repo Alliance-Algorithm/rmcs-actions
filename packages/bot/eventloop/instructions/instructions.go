@@ -18,6 +18,7 @@ type InstructionHandler struct {
 var instructionHandlers = []InstructionHandler{
 	SyncRobotNameHandler,
 	FetchNetworkHandler,
+	UpdateBinaryHandler,
 }
 
 var InstructionHandlers = func() map[string]InstructionHandler {

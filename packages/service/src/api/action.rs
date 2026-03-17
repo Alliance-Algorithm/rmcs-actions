@@ -1,7 +1,11 @@
+use std::time::Duration;
+
+use futures_util::future::join_all;
 use poem_openapi::{
     OpenApi,
     payload::{Json, PlainText},
 };
+use tokio::time::timeout;
 
 use crate::{
     api::{AnyDeserialize, ApiResult, GenericResponse},
@@ -11,6 +15,48 @@ use crate::{
 
 pub mod fetch_network;
 pub mod set_robot_name;
+pub mod update_binary;
+
+const UPDATE_BINARY_TIMEOUT: Duration = Duration::from_secs(60);
+
+fn parse_update_binary_response(
+    info: serde_json::Value,
+) -> update_binary::UpdateBinaryResponse {
+    let status = info
+        .get("status")
+        .and_then(|v| v.as_str())
+        .unwrap_or("error")
+        .to_string();
+    let message = info
+        .get("message")
+        .and_then(|v| v.as_str())
+        .unwrap_or("invalid response: missing fields")
+        .to_string();
+
+    update_binary::UpdateBinaryResponse { status, message }
+}
+
+fn update_binary_error_response(
+    message: impl Into<String>,
+) -> update_binary::UpdateBinaryResponse {
+    update_binary::UpdateBinaryResponse {
+        status: "error".to_string(),
+        message: message.into(),
+    }
+}
+
+fn update_binary_instruction_failure_response(
+    err: impl std::fmt::Display,
+) -> update_binary::UpdateBinaryResponse {
+    update_binary_error_response(format!("instruction failed: {}", err))
+}
+
+fn update_binary_timeout_response() -> update_binary::UpdateBinaryResponse {
+    update_binary_error_response(format!(
+        "instruction timed out after {} seconds",
+        UPDATE_BINARY_TIMEOUT.as_secs()
+    ))
+}
 
 pub struct ActionApi;
 
@@ -125,5 +171,129 @@ impl ActionApi {
             }
         }
         Ok(Json(fetch_network::FetchNetworkResponse {}))
+    }
+
+    #[oai(path = "/action/update_binary", method = "post")]
+    async fn update_binary(
+        &self,
+        request: Json<update_binary::UpdateBinaryRequest>,
+    ) -> ApiResult<update_binary::UpdateBinaryResponse> {
+        if let Some(conn) = CONNECTIONS.get(&request.robot_id) {
+            let result = timeout(
+                UPDATE_BINARY_TIMEOUT,
+                conn.value().send_instruction::<serde_json::Value>(
+                    Instruction::UpdateBinary {
+                        artifact_url: request.artifact_url.clone(),
+                    },
+                ),
+            )
+            .await;
+            match result {
+                Ok(Ok(info)) => Ok(Json(parse_update_binary_response(info))),
+                Ok(Err(err)) => {
+                    log::error!(
+                        "Failed to update binary on robot {}: {:?}",
+                        request.robot_id,
+                        err
+                    );
+                    Ok(Json(update_binary_instruction_failure_response(err)))
+                }
+                Err(_) => {
+                    log::error!(
+                        "Timed out updating binary on robot {} after {} seconds",
+                        request.robot_id,
+                        UPDATE_BINARY_TIMEOUT.as_secs()
+                    );
+                    Ok(Json(update_binary_timeout_response()))
+                }
+            }
+        } else {
+            log::info!(
+                "No connection found for robot_id: {}",
+                request.robot_id
+            );
+            Err(GenericResponse::BadRequest(PlainText(
+                "robot not connected".to_string(),
+            )))
+        }
+    }
+
+    #[oai(path = "/action/update_binary_all", method = "post")]
+    async fn update_binary_all(
+        &self,
+        request: Json<update_binary::UpdateBinaryAllRequest>,
+    ) -> ApiResult<update_binary::UpdateBinaryAllResponse> {
+        let update_futures = CONNECTIONS.iter().map(|conn| {
+            let robot_id = conn.key().clone();
+            let connection = conn.value().clone();
+            let artifact_url = request.artifact_url.clone();
+
+            async move {
+                let result = timeout(
+                    UPDATE_BINARY_TIMEOUT,
+                    connection.send_instruction::<serde_json::Value>(
+                        Instruction::UpdateBinary { artifact_url },
+                    ),
+                )
+                .await;
+
+                (robot_id, result)
+            }
+        });
+
+        let mut results = Vec::new();
+        let mut has_failure = false;
+
+        for (robot_id, result) in join_all(update_futures).await {
+            match result {
+                Ok(Ok(info)) => {
+                    let response = parse_update_binary_response(info);
+                    if response.status != "post_update" {
+                        has_failure = true;
+                    }
+                    results.push(update_binary::RobotUpdateResult {
+                        robot_id,
+                        status: response.status,
+                        message: response.message,
+                    });
+                }
+                Ok(Err(err)) => {
+                    has_failure = true;
+                    log::error!(
+                        "Failed to update binary on robot {}: {:?}",
+                        robot_id,
+                        err
+                    );
+                    let response =
+                        update_binary_instruction_failure_response(err);
+                    results.push(update_binary::RobotUpdateResult {
+                        robot_id,
+                        status: response.status,
+                        message: response.message,
+                    });
+                }
+                Err(_) => {
+                    has_failure = true;
+                    log::error!(
+                        "Timed out updating binary on robot {} after {} seconds",
+                        robot_id,
+                        UPDATE_BINARY_TIMEOUT.as_secs()
+                    );
+                    let response = update_binary_timeout_response();
+                    results.push(update_binary::RobotUpdateResult {
+                        robot_id,
+                        status: response.status,
+                        message: response.message,
+                    });
+                }
+            }
+        }
+
+        let overall_status = if has_failure { "partial_failure" } else { "ok" };
+
+        Ok(Json(update_binary::UpdateBinaryAllResponse {
+            status: overall_status.to_string(),
+            results,
+        }))
     }
 }
