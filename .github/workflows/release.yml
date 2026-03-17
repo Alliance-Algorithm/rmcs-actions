@@ -11,6 +11,13 @@ permissions:
 jobs:
   build-go:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
     steps:
       - uses: actions/checkout@v4
 
@@ -20,17 +27,17 @@ jobs:
           cache-dependency-path: packages/bot/go.sum
 
       - name: Build Go binary
-        run: go build -ldflags="-s -w -X main.Version=${{ github.ref_name }}" -o bot-linux-amd64 .
+        run: go build -ldflags="-s -w -X main.Version=${{ github.ref_name }}" -o bot-${{ matrix.goos }}-${{ matrix.goarch }} .
         working-directory: packages/bot
         env:
-          GOOS: linux
-          GOARCH: amd64
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: bot-linux-amd64
-          path: packages/bot/bot-linux-amd64
+          name: bot-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: packages/bot/bot-${{ matrix.goos }}-${{ matrix.goarch }}
 
   build-rust:
     runs-on: ubuntu-latest
@@ -73,6 +80,10 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
+
+      - name: Generate SHA256 checksums
+        working-directory: artifacts
+        run: sha256sum * > SHA256SUMS.txt
 
       - name: Create GitHub Release
         run: gh release create "${{ github.ref_name }}" --title "${{ github.ref_name }}" --generate-notes artifacts/*
