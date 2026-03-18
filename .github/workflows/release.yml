@@ -83,9 +83,20 @@ jobs:
 
       - name: Generate SHA256 checksums
         working-directory: artifacts
-        run: sha256sum * > SHA256SUMS.txt
+        run: |
+          find . -type f ! -name 'SHA256SUMS.txt' -print0 \
+            | LC_ALL=C sort -z \
+            | xargs -0 sha256sum > SHA256SUMS.txt
 
       - name: Create GitHub Release
-        run: gh release create "${{ github.ref_name }}" --title "${{ github.ref_name }}" --generate-notes artifacts/*
+        run: |
+          mapfile -d '' artifact_files < <(
+            find artifacts -type f -print0 | LC_ALL=C sort -z
+          )
+          gh release create \
+            "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --generate-notes \
+            "${artifact_files[@]}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
