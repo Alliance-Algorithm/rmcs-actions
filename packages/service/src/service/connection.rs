@@ -65,7 +65,7 @@ impl Connection {
                 );
             }
             MessagePayload::Event { content } => {
-                log::info!("Processing event for session_id: {}", session_id);
+                log::info!("Processing event for session_id: {session_id}");
                 let sessions = self.sessions.clone();
                 let event_session = events::create_event_session(
                     content,
@@ -86,7 +86,7 @@ impl Connection {
                 } else {
                     log::error!(
                         "Received unknown session response for {session_id}"
-                    )
+                    );
                 }
             }
             MessagePayload::Close => {
@@ -102,7 +102,7 @@ impl Connection {
                 }
                 return Ok(());
             }
-            _ => {}
+            MessagePayload::Unknown(_) => {}
         }
 
         Ok(())

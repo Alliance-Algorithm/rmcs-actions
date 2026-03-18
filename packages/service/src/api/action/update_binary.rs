@@ -26,7 +26,7 @@ pub struct RobotUpdateResult {
     pub message: String,
 }
 
-/// Response for the update_binary_all endpoint, aggregating
+/// Response for the `update_binary_all` endpoint, aggregating
 /// per-robot results.
 #[derive(Debug, Clone, Serialize, Deserialize, Object)]
 pub struct UpdateBinaryAllResponse {

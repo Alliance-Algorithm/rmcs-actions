@@ -20,7 +20,7 @@ pub mod update_binary;
 const UPDATE_BINARY_TIMEOUT: Duration = Duration::from_secs(60);
 
 fn parse_update_binary_response(
-    info: serde_json::Value,
+    info: &serde_json::Value,
 ) -> update_binary::UpdateBinaryResponse {
     let status = info
         .get("status")
@@ -48,7 +48,7 @@ fn update_binary_error_response(
 fn update_binary_instruction_failure_response(
     err: impl std::fmt::Display,
 ) -> update_binary::UpdateBinaryResponse {
-    update_binary_error_response(format!("instruction failed: {}", err))
+    update_binary_error_response(format!("instruction failed: {err}"))
 }
 
 fn update_binary_timeout_response() -> update_binary::UpdateBinaryResponse {
@@ -110,8 +110,7 @@ impl ActionApi {
                     .await
                     .map_err(|err| {
                         GenericResponse::InternalError(PlainText(format!(
-                            "Failed to write network info: {}",
-                            err
+                            "Failed to write network info: {err}"
                         )))
                     })?;
                     Ok(Json(fetch_network::FetchNetworkResponse {}))
@@ -156,16 +155,13 @@ impl ActionApi {
                     .await
                     .map_err(|err| {
                         GenericResponse::InternalError(PlainText(format!(
-                            "Failed to write network info for robot {}: {}",
-                            robot_id, err
+                            "Failed to write network info for robot {robot_id}: {err}"
                         )))
                     })?;
                 }
                 Err(err) => {
                     log::error!(
-                        "Failed to fetch network info from robot {}: {:?}",
-                        robot_id,
-                        err
+                        "Failed to fetch network info from robot {robot_id}: {err:?}"
                     );
                 }
             }
@@ -189,7 +185,7 @@ impl ActionApi {
             )
             .await;
             match result {
-                Ok(Ok(info)) => Ok(Json(parse_update_binary_response(info))),
+                Ok(Ok(info)) => Ok(Json(parse_update_binary_response(&info))),
                 Ok(Err(err)) => {
                     log::error!(
                         "Failed to update binary on robot {}: {:?}",
@@ -247,7 +243,7 @@ impl ActionApi {
         for (robot_id, result) in join_all(update_futures).await {
             match result {
                 Ok(Ok(info)) => {
-                    let response = parse_update_binary_response(info);
+                    let response = parse_update_binary_response(&info);
                     if response.status != "post_update" {
                         has_failure = true;
                     }
@@ -260,9 +256,7 @@ impl ActionApi {
                 Ok(Err(err)) => {
                     has_failure = true;
                     log::error!(
-                        "Failed to update binary on robot {}: {:?}",
-                        robot_id,
-                        err
+                        "Failed to update binary on robot {robot_id}: {err:?}"
                     );
                     let response =
                         update_binary_instruction_failure_response(err);

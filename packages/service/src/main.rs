@@ -34,13 +34,12 @@ async fn main() -> anyhow::Result<()> {
         .allow_headers(vec!["content-type"])
         .allow_credentials(true);
 
-    let server_url = format!("http://{bind_addr}/api");
     let api_service = OpenApiService::new(
         (Api, ActionApi, IdentApi, StatsApi),
         "RMCS Actions Service",
         "1.0",
     )
-    .server(&server_url);
+    .server("/api");
     let ui = api_service.swagger_ui();
     let app = Route::new()
         .nest("/api", api_service)
@@ -52,7 +51,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .with(cors);
 
-    log::info!("Starting server on {}", bind_addr);
+    log::info!("Starting server on {bind_addr}");
     poem::Server::new(poem::listener::TcpListener::bind(&bind_addr))
         .run(app)
         .await?;

@@ -25,10 +25,7 @@ pub fn create_instruction_session<I>(
 where
     I: 'static + Send + Sync + DeserializeOwned,
 {
-    log::info!(
-        "Creating instruction session for session_id: {}",
-        session_id
-    );
+    log::info!("Creating instruction session for session_id: {session_id}");
     let (action, closer) =
         instruction.init_action(session_id, output_receiver, on_complete);
     InstructionSession {

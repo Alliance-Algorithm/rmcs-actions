@@ -28,7 +28,7 @@ pub fn websocket_service(
     ws: WebSocket,
 ) -> impl IntoResponse {
     // Sync robot id and register it
-    log::info!("WebSocket connection established for robot: {}", robot_uuid);
+    log::info!("WebSocket connection established for robot: {robot_uuid}");
 
     ws.on_upgrade(move |socket| async move {
         let (mut sink, mut stream) = socket.split();
@@ -49,13 +49,12 @@ pub fn websocket_service(
                 match msg {
                     Ok(msg) => {
                         if let Message::Text(text) = msg {
-                            log::info!("Received WebSocket message: {}", text);
+                            log::info!("Received WebSocket message: {text}");
                             if let Err(err) =
                                 connection.recv(&text).await
                             {
                                 log::error!(
-                                    "Failed to process message: {:?}",
-                                    err
+                                    "Failed to process message: {err:?}"
                                 );
                             }
                         } else if msg.is_ping() || msg.is_pong() {
@@ -69,24 +68,20 @@ pub fn websocket_service(
                         }
                     }
                     Err(e) => {
-                        log::error!("WebSocket error: {:?}", e);
+                        log::error!("WebSocket error: {e:?}");
                     }
                 }
             }
         });
-
 
         tokio::spawn(async move {
             loop {
                 select! {
                     Some(msg) = ws_reader.recv() => {
                         let msg = Message::Text(serde_json::to_string(&msg).unwrap());
-                        log::debug!("Sending WebSocket message: {:?}", msg);
+                        log::debug!("Sending WebSocket message: {msg:?}");
                         if let Err(e) = sink.send(msg).await {
-                            log::error!(
-                                "Failed to send websocket message: {}",
-                                e
-                            );
+                            log::error!("Failed to send websocket message: {e}");
                             break;
                         }
                     }

@@ -21,14 +21,14 @@ pub fn sync_robot_name(
 {
     let _ = resp_tx.send(serde_json::json!({}));
     OnceShot(move |session_id: Uuid| {
-        let robot_name = new_robot_name.to_string();
+        let robot_name = new_robot_name.clone();
         async move {
-            Message::new_instruction_with_uuid(
+            Ok(Message::new_instruction_with_uuid(
                 session_id,
                 InstructionContent::SyncRobotName {
                     message: SyncRobotNameMessage { robot_name },
                 },
-            )
+            ))
         }
         .boxed()
     })

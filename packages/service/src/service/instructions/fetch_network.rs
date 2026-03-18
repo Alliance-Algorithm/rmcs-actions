@@ -13,10 +13,10 @@ pub fn fetch_network(
     PingPong {
         constructor: move |session_id: Uuid| {
             async move {
-                Message::new_instruction_with_uuid(
+                Ok(Message::new_instruction_with_uuid(
                     session_id,
                     crate::service::instructions::InstructionContent::FetchNetwork {},
-                )
+                ))
             }
             .boxed()
         },

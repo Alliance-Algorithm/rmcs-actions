@@ -13,10 +13,10 @@ pub fn update_metadata(
     let _ = resp_tx.send(serde_json::json!({}));
     OnceShot(move |session_id| {
         async move {
-            Message::new_instruction_with_uuid(
+            Ok(Message::new_instruction_with_uuid(
                 session_id,
                 InstructionContent::UpdateMetadata {},
-            )
+            ))
         }
         .boxed()
     })

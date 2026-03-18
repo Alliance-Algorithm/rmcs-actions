@@ -45,12 +45,12 @@ impl Message {
     pub fn new_instruction_with_uuid(
         session_id: Uuid,
         content: InstructionContent,
-    ) -> anyhow::Result<Self> {
-        Ok(Self {
+    ) -> Self {
+        Self {
             session_id,
             local_timestamp: chrono::Utc::now(),
             payload: MessagePayload::Instruction { content },
-        })
+        }
     }
 }
 
