@@ -23,7 +23,7 @@ pub enum GenericResponse {
 
 #[allow(clippy::needless_pass_by_value)]
 fn bad_request(err: Error) -> GenericResponse {
-    GenericResponse::InternalError(PlainText(format!("Bad request: {err}")))
+    GenericResponse::BadRequest(PlainText(format!("Bad request: {err}")))
 }
 
 impl<T: Into<anyhow::Error>> From<T> for GenericResponse {
