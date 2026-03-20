@@ -1,12 +1,28 @@
 # RMCS Actions
 
-This repository contains an centralized external management utility for RMCS.
+This repository contains a centralized external management utility for RMCS.
 
 ## Packages
 
-- `packages/bot`: A daemon running on the RMCS deployment.
-- `packages/service`: A web server used to store and process management details.
-- `packages/workstation`: A SSG frontend webpage to interact with the RMCS deployment.
+- [packages/bot/README.md](/home/admin/Develop/rmcs-actions/packages/bot/README.md):
+  a daemon running on the RMCS deployment.
+- [packages/service/README.md](/home/admin/Develop/rmcs-actions/packages/service/README.md):
+  a web server used to store and process management details.
+- [packages/workstation/README.md](/home/admin/Develop/rmcs-actions/packages/workstation/README.md):
+  a static frontend used to interact with the RMCS deployment.
+
+## Documentation
+
+- [docs/recent-changes.md](/home/admin/Develop/rmcs-actions/docs/recent-changes.md):
+  summary of the recent bot, service, and release workflow changes.
+- [docs/protocol.md](/home/admin/Develop/rmcs-actions/docs/protocol.md):
+  bot-to-service wire protocol.
+- [docs/bot/architecture.md](/home/admin/Develop/rmcs-actions/docs/bot/architecture.md):
+  robot daemon architecture notes.
+- [docs/service/event.md](/home/admin/Develop/rmcs-actions/docs/service/event.md):
+  service-side event handling design.
+- [docs/live-update.md](/home/admin/Develop/rmcs-actions/docs/live-update.md):
+  live update workflow notes.
 
 ## License
 

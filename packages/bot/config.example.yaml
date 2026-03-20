@@ -1,10 +1,17 @@
-# This file defines the configuration for the bot.
+# Configuration for the RMCS Actions bot daemon.
+# Copy this file to config.yaml and adjust as needed.
+# Paths are relative to the working directory unless absolute.
+
 log:
-  dir: logs
+  # Directory for rotating log files (created automatically).
+  dir: runtime/logs
 
 storage:
-  dir: storage
+  # Directory for persistent local state (robot ID, etc.).
+  dir: runtime/storage
 
 service:
+  # HTTP API base URL of the RMCS Actions service.
   api: http://localhost:3000/api
+  # WebSocket endpoint of the RMCS Actions service.
   websocket: ws://localhost:3000/ws

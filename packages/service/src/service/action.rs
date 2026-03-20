@@ -105,7 +105,7 @@ where
                         }
                     }
                     Err(e) => {
-                        log::error!("Failed to deserialize output: {}", e);
+                        log::error!("Failed to deserialize output: {e}");
                         break;
                     }
                 }
@@ -170,7 +170,7 @@ where
                         }
                     }
                     Err(e) => {
-                        log::error!("Failed to deserialize output: {}", e);
+                        log::error!("Failed to deserialize output: {e}");
                         break;
                     }
                 }
@@ -255,7 +255,7 @@ where
                         }
                     }
                     Err(e) => {
-                        log::error!("Failed to serialize output: {}", e);
+                        log::error!("Failed to serialize output: {e}");
                         break;
                     }
                 }
@@ -287,8 +287,7 @@ where
                                 }
                                 Err(e) => {
                                     log::error!(
-                                        "Failed to deserialize input: {}",
-                                        e
+                                        "Failed to deserialize input: {e}"
                                     );
                                     break;
                                 }
@@ -325,7 +324,7 @@ where
     }
 }
 
-/// Preserve original comment block for PingPong
+/// Preserve original comment block for `PingPong`
 ///
 /// ```rust
 /// use rmcs_actions_service::service::action::PingPong;
@@ -376,7 +375,7 @@ where
                         }
                     }
                     Err(e) => {
-                        log::error!("Failed to deserialize output: {}", e);
+                        log::error!("Failed to deserialize output: {e}");
                         break;
                     }
                 }

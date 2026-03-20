@@ -34,7 +34,7 @@ pub fn create_event_session(
     output_receiver: mpsc::Sender<Message>,
     on_complete: impl FnOnce() + Send + 'static,
 ) -> anyhow::Result<EventSession> {
-    log::info!("Creating event session for session_id: {}", session_id);
+    log::info!("Creating event session for session_id: {session_id}");
     let event_message: EventMessage = serde_json::from_value(event_raw)?;
     // Channel for streaming outputs from the action: sender goes into the action,
     // receiver is returned for external consumers to read.

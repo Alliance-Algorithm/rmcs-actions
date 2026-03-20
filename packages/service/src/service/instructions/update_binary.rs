@@ -15,12 +15,12 @@ pub fn update_binary(
     PingPong {
         constructor: move |session_id: Uuid| {
             async move {
-                Message::new_instruction_with_uuid(
+                Ok(Message::new_instruction_with_uuid(
                     session_id,
                     InstructionContent::UpdateBinary {
                         message: UpdateBinaryMessage { artifact_url },
                     },
-                )
+                ))
             }
             .boxed()
         },

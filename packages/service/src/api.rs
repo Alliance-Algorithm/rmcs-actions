@@ -21,8 +21,9 @@ pub enum GenericResponse {
     InternalError(PlainText<String>),
 }
 
+#[allow(clippy::needless_pass_by_value)]
 fn bad_request(err: Error) -> GenericResponse {
-    GenericResponse::InternalError(PlainText(format!("Bad request: {}", err)))
+    GenericResponse::BadRequest(PlainText(format!("Bad request: {err}")))
 }
 
 impl<T: Into<anyhow::Error>> From<T> for GenericResponse {
@@ -42,11 +43,13 @@ pub struct Api;
 #[OpenApi]
 impl Api {
     #[oai(path = "/ping", method = "get")]
+    #[allow(clippy::unused_async)]
     async fn pong(&self) -> RawApiResult<PlainText<&'static str>> {
         Ok(PlainText("pong"))
     }
 
     #[oai(path = "/meta/version", method = "get")]
+    #[allow(clippy::unused_async)]
     async fn version(&self) -> ApiResult<meta::version::Version> {
         Ok(Json(meta::version::Version::default()))
     }

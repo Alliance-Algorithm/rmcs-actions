@@ -16,6 +16,7 @@ impl IdentApi {
     /// `whoami` is used to get a valid robot ID based on the provided MAC address.
     /// The validation is not done here.
     #[oai(path = "/ident/whoami", method = "post")]
+    #[allow(clippy::unused_async)]
     async fn whoami(
         &self,
         info: Json<whoami::WhoAmI>,
@@ -40,7 +41,7 @@ impl IdentApi {
         if let Err(e) =
             db.register_robot(&info.mac, &info.name, &info.uuid).await
         {
-            log::error!("Failed to register robot: {}", e);
+            log::error!("Failed to register robot: {e}");
             return Ok(Json(sync::SyncResponse { success: false }));
         }
         Ok(Json(sync::SyncResponse { success: true }))
@@ -63,7 +64,7 @@ impl IdentApi {
             }))),
             Ok(None) => Ok(Json(None)),
             Err(e) => {
-                log::error!("Failed to retrieve robot: {}", e);
+                log::error!("Failed to retrieve robot: {e}");
                 Ok(Json(None))
             }
         }

@@ -1,4 +1,6 @@
-use std::sync::OnceLock;
+use std::{str::FromStr, sync::OnceLock};
+
+use sqlx::sqlite::SqliteConnectOptions;
 
 pub mod network;
 pub mod robot;
@@ -7,9 +9,21 @@ pub struct Database {
     connection: sqlx::SqlitePool,
 }
 
+const CREATE_NETWORK_INFO_TABLE_SQL: &str = "
+    CREATE TABLE IF NOT EXISTS network_info (
+        robot_uuid   TEXT PRIMARY KEY NOT NULL,
+        info         TEXT NOT NULL,
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        FOREIGN KEY (robot_uuid) REFERENCES robots(uuid) ON DELETE CASCADE
+    )
+";
+
 impl Database {
     pub async fn new(database_url: &str) -> Result<Self, sqlx::Error> {
-        let connection = sqlx::SqlitePool::connect(database_url).await?;
+        let connect_options =
+            SqliteConnectOptions::from_str(database_url)?.foreign_keys(true);
+        let connection =
+            sqlx::SqlitePool::connect_with(connect_options).await?;
         Ok(Self { connection })
     }
 
@@ -25,6 +39,55 @@ impl Database {
         )
         .execute(&self.connection)
         .await?;
+
+        self.init_network_info_table().await?;
+
+        Ok(())
+    }
+
+    async fn init_network_info_table(&self) -> Result<(), sqlx::Error> {
+        let network_info_table_exists: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'network_info'",
+        )
+        .fetch_one(&self.connection)
+        .await?;
+
+        if network_info_table_exists == 0 {
+            sqlx::query(CREATE_NETWORK_INFO_TABLE_SQL)
+                .execute(&self.connection)
+                .await?;
+            return Ok(());
+        }
+
+        let network_info_has_robot_fk: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM pragma_foreign_key_list('network_info')
+             WHERE \"table\" = 'robots' AND \"from\" = 'robot_uuid' AND \"to\" = 'uuid'",
+        )
+        .fetch_one(&self.connection)
+        .await?;
+
+        if network_info_has_robot_fk == 0 {
+            let mut transaction = self.connection.begin().await?;
+            sqlx::query(
+                "ALTER TABLE network_info RENAME TO network_info_legacy",
+            )
+            .execute(&mut *transaction)
+            .await?;
+            sqlx::query(CREATE_NETWORK_INFO_TABLE_SQL)
+                .execute(&mut *transaction)
+                .await?;
+            sqlx::query(
+                "INSERT INTO network_info (robot_uuid, info, last_updated)
+                 SELECT robot_uuid, info, last_updated FROM network_info_legacy",
+            )
+            .execute(&mut *transaction)
+            .await?;
+            sqlx::query("DROP TABLE network_info_legacy")
+                .execute(&mut *transaction)
+                .await?;
+            transaction.commit().await?;
+        }
+
         Ok(())
     }
 }

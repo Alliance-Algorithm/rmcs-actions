@@ -60,7 +60,7 @@ impl Database {
         username: &str,
         mac_address: &str,
     ) -> Result<Option<RobotIdent>, sqlx::Error> {
-        let pattern = format!("%{}%", username);
+        let pattern = format!("%{username}%");
         let row = sqlx::query_as!(
             RobotIdent,
             "SELECT mac, name, uuid FROM robots

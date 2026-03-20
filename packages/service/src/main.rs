@@ -2,6 +2,7 @@ use poem::{EndpointExt, Route, get, middleware::Cors};
 use poem_openapi::OpenApiService;
 
 use crate::api::{Api, action::ActionApi, ident::IdentApi, stats::StatsApi};
+use crate::constant::env::{DEFAULT_BIND_ADDR, ENV_NAME_BIND_ADDR};
 
 mod api;
 mod constant;
@@ -25,6 +26,9 @@ async fn main() -> anyhow::Result<()> {
         .set(db)
         .map_err(|_| anyhow::anyhow!("Failed to set database"))?;
 
+    let bind_addr = std::env::var(ENV_NAME_BIND_ADDR)
+        .unwrap_or_else(|_| DEFAULT_BIND_ADDR.to_string());
+
     let cors = Cors::new()
         .allow_methods(vec!["GET", "POST"])
         .allow_headers(vec!["content-type"])
@@ -35,7 +39,7 @@ async fn main() -> anyhow::Result<()> {
         "RMCS Actions Service",
         "1.0",
     )
-    .server("http://localhost:3000/api");
+    .server("/api");
     let ui = api_service.swagger_ui();
     let app = Route::new()
         .nest("/api", api_service)
@@ -47,7 +51,8 @@ async fn main() -> anyhow::Result<()> {
         )
         .with(cors);
 
-    poem::Server::new(poem::listener::TcpListener::bind("0.0.0.0:3000"))
+    log::info!("Starting server on {bind_addr}");
+    poem::Server::new(poem::listener::TcpListener::bind(&bind_addr))
         .run(app)
         .await?;
 

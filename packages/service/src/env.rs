@@ -10,22 +10,19 @@ pub fn load_env() -> anyhow::Result<()> {
 
     for &var in REQUIRED_ENV_VARS {
         std::env::var(var).map_err(|_| {
-            anyhow::anyhow!("Environment variable `{}` is not set", var)
+            anyhow::anyhow!("Environment variable `{var}` is not set")
         })?;
     }
 
     for &var in REQUIRED_PATH_ENV_VARS {
         let path_str = std::env::var(var).map_err(|_| {
-            anyhow::anyhow!("Environment variable `{}` is not set", var)
+            anyhow::anyhow!("Environment variable `{var}` is not set")
         })?;
         let path = std::path::Path::new(&path_str);
         if !path.exists() {
             std::fs::create_dir_all(path).map_err(|e| {
                 anyhow::anyhow!(
-                    "Failed to create directory for environment variable `{}` at path `{}`: {}",
-                    var,
-                    path_str,
-                    e
+                    "Failed to create directory for environment variable `{var}` at path `{path_str}`: {e}"
                 )
             })?;
         }
